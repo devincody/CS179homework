@@ -91,7 +91,7 @@ float cuda_call_blur_kernel(const unsigned int blocks,
 
     
     // TODO: Appropriately call the kernel function.
-    gpu_errchk(cuda_blur_kernel<<<blocks, threads_per_block>>>(gpu_raw_data, gpu_blur_v, gpu_out_data, n_frames, blur_v_size));
+    cuda_blur_kernel<<<blocks, threads_per_block>>>(gpu_raw_data, gpu_blur_v, gpu_out_data, n_frames, blur_v_size);
 
     // Check for errors on kernel call
     cudaError err = cudaGetLastError();
