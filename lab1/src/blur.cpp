@@ -184,9 +184,9 @@ int large_gauss_test(int argc, char **argv) {
 
         // Use the CUDA machinery for recording time
         cudaEvent_t start_cpu, stop_cpu;
-        gpu_errchk(cudaEventCreate(&start_cpu));
-        gpu_errchk(cudaEventCreate(&stop_cpu));
-        gpu_errchk(cudaEventRecord(start_cpu));
+        cudaEventCreate(&start_cpu);
+        cudaEventCreate(&stop_cpu);
+        cudaEventRecord(start_cpu);
         // cout << "CPU blurring..." << endl;
         // (For scoping)
         {
