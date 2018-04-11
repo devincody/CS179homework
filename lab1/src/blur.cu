@@ -61,9 +61,9 @@ void cuda_blur_kernel(const float *gpu_raw_data, const float *gpu_blur_v,
     //       Remember to advance the index as necessary.
     while (thread_index < n_frames) {
         // Do computation for this thread index
-        gpu_errchk(cuda_blur_kernel_convolution(thread_index, gpu_raw_data,
+        cuda_blur_kernel_convolution(thread_index, gpu_raw_data,
                                      gpu_blur_v, gpu_out_data,
-                                     n_frames, blur_v_size));
+                                     n_frames, blur_v_size);
         // TODO: Update the thread index
         thread_index += gridDim.x*blockDim.x;
     }
