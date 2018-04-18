@@ -97,11 +97,22 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
 
     __shared__ float data[64*65];
 
-    int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
-    int j = 4 * threadIdx.y + 64 * blockIdx.y;
 
-    int ii =   threadIdx.x; //shared i
-    int jj = 4*threadIdx.y; //shared j
+    // For the input write code //
+    const int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
+    const int j = 4 * threadIdx.y + 64 * blockIdx.y;
+
+    const int ii =   threadIdx.x; //shared i
+    const int jj = 4*threadIdx.y; //shared j
+
+
+    // For the output write code //
+    const int i_ =     threadIdx.x + 64 * blockIdx.y; //global indicies
+    const int j_ = 4 * threadIdx.y + 64 * blockIdx.x;
+
+    const int ii_ = 4*threadIdx.y;
+    const int jj_ =   threadIdx.x;
+
 
     data[ii + 65* jj     ] = input[i + n *  j    ]; 
     data[ii + 65*(jj + 1)] = input[i + n * (j + 1)]; 
@@ -110,16 +121,10 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
 
     __syncthreads();
 
-    i =     threadIdx.x + 64 * blockIdx.y; //global indicies
-    j = 4 * threadIdx.y + 64 * blockIdx.x;
-
-    ii = 4*threadIdx.y;
-    jj =   threadIdx.x;
-
-    output[i + n *  j     ] = data[ ii      + 65*jj];
-    output[i + n * (j + 1)] = data[(ii + 1) + 65*jj];
-    output[i + n * (j + 2)] = data[(ii + 2) + 65*jj];
-    output[i + n * (j + 3)] = data[(ii + 3) + 65*jj];
+    output[i_ + n *  j_     ] = data[ ii_      + 65*jj_];
+    output[i_ + n * (j_ + 1)] = data[(ii_ + 1) + 65*jj_];
+    output[i_ + n * (j_ + 2)] = data[(ii_ + 2) + 65*jj_];
+    output[i_ + n * (j_ + 3)] = data[(ii_ + 3) + 65*jj_];
 
 }
 
