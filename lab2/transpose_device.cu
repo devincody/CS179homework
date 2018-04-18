@@ -60,7 +60,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
 
     __shared__ float data[64*65];
 
-    const int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
+    int i = threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
     int j = 4 * threadIdx.y + 64 * blockIdx.y;
 
     const int end_j = j + 4;
