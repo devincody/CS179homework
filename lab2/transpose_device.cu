@@ -103,7 +103,7 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     int ii =   threadIdx.x; //shared i
     int jj = 4*threadIdx.y; //shared j
 
-    data[ii + 65*(jj    )] = input[i + n * (j    )]; 
+    data[ii + 65* jj     ] = input[i + n *  j    ]; 
     data[ii + 65*(jj + 1)] = input[i + n * (j + 1)]; 
     data[ii + 65*(jj + 2)] = input[i + n * (j + 2)]; 
     data[ii + 65*(jj + 3)] = input[i + n * (j + 3)]; 
@@ -114,7 +114,7 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     ii = 4*threadIdx.y;
     jj =   threadIdx.x;
 
-    output[i + n * (j    )] = data[(ii    ) + 65*jj];
+    output[i + n *  j     ] = data[ ii      + 65*jj];
     output[i + n * (j + 1)] = data[(ii + 1) + 65*jj];
     output[i + n * (j + 2)] = data[(ii + 2) + 65*jj];
     output[i + n * (j + 3)] = data[(ii + 3) + 65*jj];
