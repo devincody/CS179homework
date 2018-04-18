@@ -8,8 +8,14 @@ CUDA_BIN_PATH   ?= $(CUDA_PATH)/bin
 CUDA_LIB_PATH   ?= $(CUDA_PATH)/lib
 
 # CUDA code generation flags
-GENCODE_FLAGS   := -gencode arch=compute_20,code=sm_20 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35, -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_52,code=compute_52
-
+NVCC_GENCODES = -gencode arch=compute_30,code=sm_30 \
+        -gencode arch=compute_35,code=sm_35 \
+        -gencode arch=compute_50,code=sm_50 \
+        -gencode arch=compute_52,code=sm_52 \
+        -gencode arch=compute_60,code=sm_60 \
+        -gencode arch=compute_61,code=sm_61 \
+        -gencode arch=compute_61,code=compute_61
+        
 # Common binaries
 NVCC            ?= $(CUDA_BIN_PATH)/nvcc
 
