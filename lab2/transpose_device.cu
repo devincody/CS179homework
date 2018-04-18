@@ -80,8 +80,8 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     j = 4 * threadIdx.y + 64 * blockIdx.x;
     end_j = j + 4;
 
-    ii =  4*threadIdx.y;
-    jj =    threadIdx.x;
+    ii = 4*threadIdx.y;
+    jj =   threadIdx.x;
 
     for(; j < end_j; j++){
         output[i + n * j] = data[ii + 65*jj];
@@ -95,12 +95,32 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     // Use any optimization tricks discussed so far to improve performance.
     // Consider ILP and loop unrolling.
 
-    const int i = threadIdx.x + 64 * blockIdx.x;
-    int j = 4 * threadIdx.y + 64 * blockIdx.y;
-    const int end_j = j + 4;
+    __shared__ float data[64*65];
 
-    for (; j < end_j; j++)
-        output[j + n * i] = input[i + n * j];
+    int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
+    int j = 4 * threadIdx.y + 64 * blockIdx.y;
+    int end_j = j + 4;
+
+    int ii =   threadIdx.x; //shared i
+    int jj = 4*threadIdx.y; //shared j
+
+    data[ii + 65*(jj    )] = input[i + n * (j    )]; 
+    data[ii + 65*(jj + 1)] = input[i + n * (j + 1)]; 
+    data[ii + 65*(jj + 2)] = input[i + n * (j + 2)]; 
+    data[ii + 65*(jj + 3)] = input[i + n * (j + 3)]; 
+
+    i =     threadIdx.x + 64 * blockIdx.y; //global indicies
+    j = 4 * threadIdx.y + 64 * blockIdx.x;
+    end_j = j + 4;
+
+    ii = 4*threadIdx.y;
+    jj =   threadIdx.x;
+
+    output[i + n * (j    )] = data[(ii    ) + 65*jj];
+    output[i + n * (j + 1)] = data[(ii + 1) + 65*jj];
+    output[i + n * (j + 2)] = data[(ii + 2) + 65*jj];
+    output[i + n * (j + 3)] = data[(ii + 3) + 65*jj];
+
 }
 
 void cudaTranspose(
