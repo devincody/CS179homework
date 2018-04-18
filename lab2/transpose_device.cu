@@ -108,6 +108,8 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     data[ii + 65*(jj + 2)] = input[i + n * (j + 2)]; 
     data[ii + 65*(jj + 3)] = input[i + n * (j + 3)]; 
 
+    __syncthreads();
+
     i =     threadIdx.x + 64 * blockIdx.y; //global indicies
     j = 4 * threadIdx.y + 64 * blockIdx.x;
 
