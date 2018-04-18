@@ -58,7 +58,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     // memory bank conflicts (0 bank conflicts should be possible using
     // padding). Again, comment on all sub-optimal accesses.
 
-    __shared__ float data[64*65];
+    __shared__ float data[64*66];
 
     int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
     int j = 4 * threadIdx.y + 64 * blockIdx.y;
@@ -67,9 +67,10 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     int ii =   threadIdx.x; //shared i
     int jj = 4*threadIdx.y; //shared j
 
-    //int c = 0;
+    int offset = threadIdx.x/n;
+
     for (; j < end_j; j++){ // Unroll this next time
-        data[ii + 65*jj] = input[i + n * j]; 
+        data[ii + offset + 66*jj] = input[i + n * j]; 
         jj++;
     }
 
@@ -84,7 +85,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     jj =   threadIdx.x;
 
     for(; j < end_j; j++){
-        output[i + n * j] = data[ii + 65*jj];
+        output[i + n * j] = data[ii + offset + 66*jj];
         ii++;
     }
 }
@@ -95,25 +96,31 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     // Use any optimization tricks discussed so far to improve performance.
     // Consider ILP and loop unrolling.
 
+    // Initialize shared memory
     __shared__ float data[64*65];
 
 
-    // For the input write code //
-    const int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
-    const int j = 4 * threadIdx.y + 64 * blockIdx.y;
+    /* 
+    For the input write code 
+    */
+    const int i =     threadIdx.x + 64 * blockIdx.x; // row in global memory
+    const int j = 4 * threadIdx.y + 64 * blockIdx.y; // col in global memory
 
-    const int ii =   threadIdx.x; //shared i
-    const int jj = 4*threadIdx.y; //shared j
-
-
-    // For the output write code //
-    const int i_ =     threadIdx.x + 64 * blockIdx.y; //global indicies
-    const int j_ = 4 * threadIdx.y + 64 * blockIdx.x;
-
-    const int ii_ = 4*threadIdx.y;
-    const int jj_ =   threadIdx.x;
+    const int ii =   threadIdx.x; // row in shared memory
+    const int jj = 4*threadIdx.y; // col in shared memory
 
 
+    /* 
+    For the output write code 
+    ii_ and jj_ are included for completeness (i.e. negigible speedup if removed)    
+    */
+    const int i_ =     threadIdx.x + 64 * blockIdx.y; // row in global memory
+    const int j_ = 4 * threadIdx.y + 64 * blockIdx.x; // col in global memory
+
+    const int ii_ = 4*threadIdx.y; // row in shared memory 
+    const int jj_ =   threadIdx.x; // col in shared memory 
+
+    // Store to shared memory
     data[ii + 65* jj     ] = input[i + n *  j    ]; 
     data[ii + 65*(jj + 1)] = input[i + n * (j + 1)]; 
     data[ii + 65*(jj + 2)] = input[i + n * (j + 2)]; 
@@ -121,6 +128,7 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
 
     __syncthreads();
 
+    // Write to global memory
     output[i_ + n *  j_     ] = data[ ii_      + 65*jj_];
     output[i_ + n * (j_ + 1)] = data[(ii_ + 1) + 65*jj_];
     output[i_ + n * (j_ + 2)] = data[(ii_ + 2) + 65*jj_];
