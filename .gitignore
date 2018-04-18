@@ -1,2 +1,5 @@
 *.o
 *-blur
+*.tar*
+*.tgz*
+*.zip
