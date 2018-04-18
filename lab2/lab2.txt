@@ -40,6 +40,7 @@ Let the block shape be (32, 32, 1).
 (a)
 int idx = threadIdx.y + blockSize.y * threadIdx.x;
 if (idx % 32 < 16)
+
     foo();
 else
     bar();
@@ -51,6 +52,7 @@ const float pi = 3.14;
 float result = 1.0;
 for (int i = 0; i < threadIdx.x; i++)
     result *= pi;
+
 
 Does this code diverge? Why or why not? (This is a bit of a trick question,
 either "yes" or "no can be a correct answer with appropriate explanation.)
