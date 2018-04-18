@@ -99,7 +99,6 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
 
     int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
     int j = 4 * threadIdx.y + 64 * blockIdx.y;
-    int end_j = j + 4;
 
     int ii =   threadIdx.x; //shared i
     int jj = 4*threadIdx.y; //shared j
@@ -111,7 +110,6 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
 
     i =     threadIdx.x + 64 * blockIdx.y; //global indicies
     j = 4 * threadIdx.y + 64 * blockIdx.x;
-    end_j = j + 4;
 
     ii = 4*threadIdx.y;
     jj =   threadIdx.x;
