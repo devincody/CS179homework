@@ -77,7 +77,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
 
 
     i =     threadIdx.x + 64 * blockIdx.x; //global indicies
-    j = 4 * threadIdx.y + 64 * blockIdx.x;
+    j = 4 * threadIdx.y + 64 * blockIdx.y;
     end_j = j + 4;
 
     ii =  4*threadIdx.y;
