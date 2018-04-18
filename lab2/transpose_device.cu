@@ -80,8 +80,8 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     j = 4 * threadIdx.y + 64 * blockIdx.y;
     end_j = j + 4;
 
-    ii =  4*threadIdx.x;
-    jj =    threadIdx.y;
+    ii =  4*threadIdx.y;
+    jj =    threadIdx.x;
 
     for(; j < end_j; j++){
         output[i + n * j] = data[ii + 65*jj];
