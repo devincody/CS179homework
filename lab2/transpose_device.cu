@@ -41,6 +41,12 @@ output[j + n * i] = input[i + n * j];
 __global__
 void naiveTransposeKernel(const float *input, float *output, int n) {
     // TODO: do not modify code, just comment on suboptimal accesses
+    /*
+    This implementation is suboptimal in that it doesnt use shared memory.
+    It instead relies on slow global memory transactions. Reading the 
+    memory from global memory (i.e. from input[]) is coallesced, but the
+    writing to global memory (i.e. to output[]) is not coallesced.
+    */
 
     const int i = threadIdx.x + 64 * blockIdx.x;
     int j = 4 * threadIdx.y + 64 * blockIdx.y;
@@ -58,30 +64,39 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     // memory bank conflicts (0 bank conflicts should be possible using
     // padding). Again, comment on all sub-optimal accesses.
 
-    __shared__ float data[64*65];
+    /*
+    Non-optimalities include the for loops not being unrolled, not using 
+    const variables, and not putting most of the reads in one location.
+    */
 
-    int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT, internal COL of OUTPUT
-    int j = 4 * threadIdx.y + 64 * blockIdx.y;
+    __shared__ float data[64*65]; //Using shared memory to take advantage of coalleced memory transactions
+                                  //
+
+    int i =     threadIdx.x + 64 * blockIdx.x; //i = internal ROW of INPUT
+    int j = 4 * threadIdx.y + 64 * blockIdx.y; // COL
     int end_j = j + 4;
 
     int ii =   threadIdx.x; //shared i
     int jj = 4*threadIdx.y; //shared j
 
+    // Read the data
     for (; j < end_j; j++){ // Unroll this next time
         data[ii + 65*jj] = input[i + n * j]; 
         jj++;
     }
 
+    // make sure all the threads have read the data before starting to write
     __syncthreads();
 
 
     i =     threadIdx.x + 64 * blockIdx.y; //global indicies
-    j = 4 * threadIdx.y + 64 * blockIdx.x;
+    j = 4 * threadIdx.y + 64 * blockIdx.x; //notice the blockIdx s have been swapped
     end_j = j + 4;
 
     ii = 4*threadIdx.y;
     jj =   threadIdx.x;
 
+    // Write the data
     for(; j < end_j; j++){
         output[i + n * j] = data[ii + 65*jj];
         ii++;
