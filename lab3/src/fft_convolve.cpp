@@ -22,7 +22,7 @@ using std::endl;
 
 const float PI = 3.14159265358979;
 
-#define AUDIO_ON 1
+#define AUDIO_ON 0
 
 #if AUDIO_ON
     #include <sndfile.h>
@@ -249,9 +249,9 @@ int large_gauss_test(int argc, char **argv){
     Also, unlike in Homework 1, we don't copy our impulse response
     yet, because this is now given to us per-channel. */
 
-    cudaMalloc(&dev_input_data, sizeof(cufftComplex)*padded_length);
-    cudaMalloc(&dev_impulse_v, sizeof(cufftComplex)*padded_length);
-    cudaMalloc(&dev_out_data, sizeof(cufftComplex)*padded_length);
+    gpuErrchk(cudaMalloc(&dev_input_data, sizeof(cufftComplex)*padded_length));
+    gpuErrchk(cudaMalloc(&dev_impulse_v, sizeof(cufftComplex)*padded_length));
+    gpuErrchk(cudaMalloc(&dev_out_data, sizeof(cufftComplex)*padded_length));
 
 
 // (From Eric's code)
@@ -394,7 +394,7 @@ int large_gauss_test(int argc, char **argv){
 // dev_input_data
 // dev_impulse_v
 // def_out_data
-        cudaMemcpy(dev_input_data, input_data, N*sizeof(cufftComplex), cudaMemcpyHostToDevice);
+        gpuErrchk(cudaMemcpy(dev_input_data, input_data, N*sizeof(cufftComplex), cudaMemcpyHostToDevice));
 
 
         /* TODO: Copy this channel's impulse response data (stored in impulse_data)
@@ -406,7 +406,7 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
-        cudaMemcpy(dev_impulse_v, impulse_data, impulse_length*sizeof(cufftComplex), cudaMemcpyHostToDevice);
+        gpuErrchk(cudaMemcpy(dev_impulse_v, impulse_data, impulse_length*sizeof(cufftComplex), cudaMemcpyHostToDevice));
 
 
         /* TODO: We're only copying to part of the allocated
@@ -415,8 +415,8 @@ int large_gauss_test(int argc, char **argv){
         Set the rest of the memory regions to 0 (recommend using cudaMemset).
         */
 
-        cudaMemset(&dev_input_data[N], 0, (padded_length-N)*sizeof(cufftComplex) );
-        cudaMemset(&dev_impulse_v[impulse_length], 0, (padded_length -  impulse_length)*sizeof(cufftComplex));
+        gpuErrchk(cudaMemset(&dev_input_data[N], 0, (padded_length-N)*sizeof(cufftComplex) ));
+        gpuErrchk(cudaMemset(&dev_impulse_v[impulse_length], 0, (padded_length -  impulse_length)*sizeof(cufftComplex)));
 
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
@@ -425,13 +425,13 @@ int large_gauss_test(int argc, char **argv){
 
         cufftHandle plan;
 
-        cufftPlan1d(&plan, padded_length, CUFFT_C2C, 1);
+        gpuErrchk(cufftPlan1d(&plan, padded_length, CUFFT_C2C, 1));
 
         /* TODO: Run the forward DFT on the input signal and the impulse response. 
         (Do these in-place.) */
 
-        cufftExecC2C(plan, dev_input_data, dev_input_data, CUFFT_FORWARD);
-        cufftExecC2C(plan, dev_impulse_v, dev_impulse_v, CUFFT_FORWARD);
+        gpuErrchk(cufftExecC2C(plan, dev_input_data, dev_input_data, CUFFT_FORWARD));
+        gpuErrchk(cufftExecC2C(plan, dev_impulse_v, dev_impulse_v, CUFFT_FORWARD));
 
 
         /* NOTE: This is a function in the fft_convolve_cuda.cu file,
@@ -458,11 +458,11 @@ int large_gauss_test(int argc, char **argv){
         /* TODO: Run the inverse DFT on the output signal. 
         (Do this in-place.) */
 
-        cufftExecC2C(plan, dev_out_data, dev_out_data, CUFFT_INVERSE);
+        gpuErrchk(cufftExecC2C(plan, dev_out_data, dev_out_data, CUFFT_INVERSE));
 
         /* TODO: Destroy the cuFFT plan. */
 
-        cufftDestroy(plan);
+        gpuErrchk(cufftDestroy(plan));
 
         // For testing and timing-control purposes only
         gpuErrchk(cudaMemcpy(output_data_testarr, dev_out_data, padded_length * sizeof(cufftComplex), cudaMemcpyDeviceToHost));
