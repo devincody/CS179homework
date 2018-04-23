@@ -613,6 +613,8 @@ int large_gauss_test(int argc, char **argv){
         Note that we have a padded-length signal, so be careful of the
         size of the memory copy. */
 
+        gpuErrchk(cudaMemcpy(output_data, dev_out_data , padded_length*sizeof(cufftComplex), cudaMemcpyHostToDevice));
+
 
         cout << endl;
         cout << "CPU normalization constant: " << max_abs_val << endl;
