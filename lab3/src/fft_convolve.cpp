@@ -249,9 +249,9 @@ int large_gauss_test(int argc, char **argv){
     Also, unlike in Homework 1, we don't copy our impulse response
     yet, because this is now given to us per-channel. */
 
-    dev_input_data = (*cufftComplex) cudaMalloc(sizeof(cufftComplex)*padded_length);
-    dev_impulse_v = (*cufftComplex) cudaMalloc(sizeof(cufftComplex)*padded_length);
-    dev_out_data = (*cufftComplex) cudaMalloc(sizeof(cufftComplex)*padded_length);
+    dev_input_data = (cufftComplex *) cudaMalloc(sizeof(cufftComplex)*padded_length);
+    dev_impulse_v = (cufftComplex *) cudaMalloc(sizeof(cufftComplex)*padded_length);
+    dev_out_data = (cufftComplex *) cudaMalloc(sizeof(cufftComplex)*padded_length);
 
 
 // (From Eric's code)
@@ -394,7 +394,7 @@ int large_gauss_test(int argc, char **argv){
 // dev_input_data
 // dev_impulse_v
 // def_out_data
-        cudaMemcpy(dev_input_data, input_data, N*sizeof(cufftComplex), CudaMemcpyHostToDevice);
+        cudaMemcpy(dev_input_data, input_data, N*sizeof(cufftComplex), cudaMemcpyHostToDevice);
 
 
         /* TODO: Copy this channel's impulse response data (stored in impulse_data)
@@ -406,7 +406,7 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
-        cudaMemcpy(dev_impulse_v, impulse_data, impulse_length*sizeof(cufftCompex), CudaMemcpyHostToDevice);
+        cudaMemcpy(dev_impulse_v, impulse_data, impulse_length*sizeof(cufftComplex), cudaMemcpyHostToDevice);
 
 
         /* TODO: We're only copying to part of the allocated
@@ -415,8 +415,8 @@ int large_gauss_test(int argc, char **argv){
         Set the rest of the memory regions to 0 (recommend using cudaMemset).
         */
 
-        cudaMemset(dev_input_data[N], 0, (padded_length-N)*sizeof(cufftComplex));
-        cudaMemset(dev_impulse_v[impulse_length], 0, (padded_length -  impulse_length)*sizeof(cufftComplex));
+        cudaMemset(&dev_input_data[N], 0, (padded_length-N)*sizeof(cufftComplex) );
+        cudaMemset(&dev_impulse_v[impulse_length], 0, (padded_length -  impulse_length)*sizeof(cufftComplex));
 
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
