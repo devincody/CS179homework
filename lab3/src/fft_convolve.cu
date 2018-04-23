@@ -113,13 +113,13 @@ cudaDivideKernel(cufftComplex *out_data, float *max_abs_val,
     This kernel should be quite short.
     */
 
-    int tid = blockDim.x*blockIdx.x + threadIdx.x;
+    int tid = blockDim.x*blockIdx.x +   threadIdx.x;
 
     while (tid < padded_length){
         out_data[tid] /= *max_abs_val;
 
         tid += gridDim.x*blockDim.x;
-    }
+    } 
 
 }
 
