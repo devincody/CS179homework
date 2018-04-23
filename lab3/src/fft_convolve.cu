@@ -54,8 +54,6 @@ cudaProdScaleKernel(const cufftComplex *raw_data, const cufftComplex *impulse_v,
 
     */
 
-    __shared__ cufftComplex 
-
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     while (tid < padded_length){
@@ -116,7 +114,8 @@ cudaDivideKernel(cufftComplex *out_data, float *max_abs_val,
     int tid = blockDim.x*blockIdx.x +   threadIdx.x;
 
     while (tid < padded_length){
-        out_data[tid] /= *max_abs_val;
+        out_data[tid].x /= *max_abs_val;
+        out_data[tid].y /= *max_abs_val;
 
         tid += gridDim.x*blockDim.x;
     } 
