@@ -96,6 +96,33 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     */
 
+    int indx = blockIdx.x*blockDim.x + threadIdx.x;
+    int tid = threadIdx.x;
+
+    extern __shared__ float sdata[];
+
+    sdata[tid] = out_data[indx];
+    indx += gridDim.x*blockDim.x;
+
+    while (index < padded_length){
+        if (sdata[tid] < out_data[indx].x){
+            sdata[tid] = out_data[indx].x;
+        }
+        indx += gridDim.x*blockDim.x;
+    }
+
+    __syncthreads();
+
+    for (int s= blockDim.x/2; s > 0; s>>=1){
+        if(tid < s){
+            // sdata[tid] += sdata[tid + s]; // CHANGE
+            sdata[tid] = (sdata[tid] < sdata[tid+s])?sdata[tid+s]:sdata[tid];
+        }
+        __syncthreads();
+    }
+
+
+    if (tid == 0) atomicMax(max_abs_val, sdata[0]);
 
 }
 
@@ -142,6 +169,10 @@ void cudaCallMaximumKernel(const unsigned int blocks,
         
 
     /* TODO 2: Call the max-finding kernel. */
+    cudaCallMaximumKernel<<<blocks, threadsPerBlock>>>(out_data, max_abs_val, padded_length);
+
+    // Dynamic shared memory allocation?
+    // Do we need anothe array for 
 
 }
 
@@ -153,4 +184,5 @@ void cudaCallDivideKernel(const unsigned int blocks,
         const unsigned int padded_length) {
         
     /* TODO 2: Call the division kernel. */
+    cudaDivideKernel<<<blocks, threadsPerBlock>>>(out_data, max_abs_val, padded_length);
 }
