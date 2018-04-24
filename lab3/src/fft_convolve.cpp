@@ -229,9 +229,6 @@ int large_gauss_test(int argc, char **argv){
 #endif
 
 
-
-
-
     // Output storage for CPU implementation
     float *output_data_host = (float*)malloc(padded_length * sizeof(float));
 
@@ -640,9 +637,6 @@ int large_gauss_test(int argc, char **argv){
                 allchannel_output[i * nChannels + ch] = output_data[i].x;
             }
         #endif
-
-
-
     }
 
 
