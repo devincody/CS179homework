@@ -104,7 +104,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     sdata[tid] = out_data[indx].x;
     indx += gridDim.x*blockDim.x;
 
-    while (index < padded_length){
+    while (indx < padded_length){
         if (sdata[tid] < out_data[indx].x){
             sdata[tid] = out_data[indx].x;
         }
