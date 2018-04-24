@@ -651,7 +651,7 @@ int large_gauss_test(int argc, char **argv){
     gpuErrchk(cudaFree(dev_input_data));
     gpuErrchk(cudaFree(dev_impulse_v));
     gpuErrchk(cudaFree(dev_out_data));
-    gpuErrchk(cudaFree(dev_max_abs_val));
+    //gpuErrchk(cudaFree(dev_max_abs_val));
 
     // Free memory on host
     free(input_data);
