@@ -116,29 +116,29 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     __syncthreads(); // make sure shared memory is ready
 
-    // for (int s= blockDim.x/2; s > 0; s>>=1){
-        
-    //     This implementation uses the tecnique of sequential addressing.
-    //     Each thread is responsible for finding the max between the data
-    //     at tid and tid+s. This approach allows us to avoid bank conflicts
-    //     since the stride is always 1 
-        
-    //     if(tid < s){
-    //         // s = 16, 8, 4, 2, 1
-    //         // here each thread finds the max between the data at tid and
-    //         // and address on the "other side", a distance of s away.
-    //         sdata[tid] = max(sdata[tid+s],sdata[tid]);
-    //     }
-    //     __syncthreads();
-    // }
-
-    if (tid < 16){
-        sdata[tid] = max(sdata[tid+16],sdata[tid]);
-        sdata[tid] = max(sdata[tid+8],sdata[tid]);
-        sdata[tid] = max(sdata[tid+4],sdata[tid]);
-        sdata[tid] = max(sdata[tid+2],sdata[tid]);
-        sdata[tid] = max(sdata[tid+1],sdata[tid]);
+    for (int s= blockDim.x/2; s > 0; s>>=1){
+        /*
+        This implementation uses the tecnique of sequential addressing.
+        Each thread is responsible for finding the max between the data
+        at tid and tid+s. This approach allows us to avoid bank conflicts
+        since the stride is always 1 
+        */
+        if(tid < s){
+            // s = 16, 8, 4, 2, 1
+            // here each thread finds the max between the data at tid and
+            // and address on the "other side", a distance of s away.
+            sdata[tid] = max(sdata[tid+s],sdata[tid]);
+        }
+        __syncthreads();
     }
+
+    // if (tid < 16){
+    //     sdata[tid] = max(sdata[tid+16],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+8],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+4],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+2],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+1],sdata[tid]);
+    // }
 
     // atomicMax is used by each thread to compare the value of the data point
     // at the first index (i.e. the max for the particular warp) with the current
