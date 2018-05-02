@@ -22,7 +22,11 @@ int main(int argc, char *argv[]) {
     int i, j, k;
 
     //TODO: cudaMalloc buffers, copy these to device, etc.
-    double *d_A, *d_B, *d_res1, d_res2;
+
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    double *d_A, *d_B, *d_res1, *d_res2;
     double alpha = 1, beta = 0;
 
     cudaMalloc(&d_A, N*M*sizeof(double));
@@ -82,4 +86,11 @@ int main(int argc, char *argv[]) {
                 d_res2, M);
 
     cudaMemcpy(&res2, d_res2, M*M*sizeof(double), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_res1);
+    cudaFree(d_res2);
+
+    cublasCreate(handle);
 }
