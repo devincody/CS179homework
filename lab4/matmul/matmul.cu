@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
             for (k = 0; k < M; k++) {
                 res1[IDX2C(i, j, N)] += A[IDX2C(i, k, N)] * B[IDX2C(k, j, M)];
             }
-            printf("[%f, %f] = %d\n", i, j, res1[IDX2C(i, j, N)]);
+            printf("[%d, %d] = %f\n", i, j, res1[IDX2C(i, j, N)]);
         }
     }
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
             for (k = 0; k < N; k++) {
                 res2[IDX2C(i, j, M)] += A[IDX2C(k, i, N)] * B[IDX2C(j, k, M)];
             }
-            printf("[%f, %f] = %d\n", i, j, res2[IDX2C(i, j, M)]);
+            printf("[%d, %d] = %f\n", i, j, res2[IDX2C(i, j, M)]);
         }
     }
 
