@@ -178,7 +178,7 @@ int large_gauss_test(int argc, char **argv){
     parameter to control how many trials we run. */
 
     int nChannels = 2;      // Can set as the number of trials
-    int N = 1e7;        // Can set how many data points arbitrarily
+    int N = 1e6;        // Can set how many data points arbitrarily
     int impulse_length = GAUSSIAN_SIZE;
 
 #endif
@@ -603,7 +603,7 @@ int large_gauss_test(int argc, char **argv){
         // For testing purposes only
         gpuErrchk( cudaMemcpy(&max_abs_val_fromGPU, 
             dev_max_abs_val, 1 * sizeof(float), cudaMemcpyDeviceToHost) );
-
+        gpuErrchk(cudaFree(dev_max_abs_val));
 
 
         /* TODO: Now that kernel calls have finished, copy the output
@@ -637,6 +637,7 @@ int large_gauss_test(int argc, char **argv){
                 allchannel_output[i * nChannels + ch] = output_data[i].x;
             }
         #endif
+
     }
 
 
@@ -645,7 +646,7 @@ int large_gauss_test(int argc, char **argv){
     gpuErrchk(cudaFree(dev_input_data));
     gpuErrchk(cudaFree(dev_impulse_v));
     gpuErrchk(cudaFree(dev_out_data));
-    //gpuErrchk(cudaFree(dev_max_abs_val));
+    
 
     // Free memory on host
     free(input_data);

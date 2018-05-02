@@ -1,0 +1,76 @@
+CS 179: GPU Computing
+Assignment 4
+
+Due: Friday, May 4, 2018 - 3:00 PM
+
+You may submit your final project proposals with this text file. 
+
+
+Submission: 
+------------------
+
+By e-mail to cs179.ta@gmail.com. Package your files in a standard archive format (e.g. zip, tar.gz, tar.bz2). Please also include your name in the title of your archive
+
+
+Resource usage:
+------------------
+
+You'll just be using the CUBLAS API (Feel free to look up general documentation.)
+
+Question 1: Raytracing CUBLAS conversion (coding in comments) (60 pts)
+--------------------------------------------------------
+--------------------------------------------------------
+
+
+Introduction:
+------------------
+
+Similarily to lab3 this lab will make use of a CUDA library. We will be using cuBLAS to accelerate 
+basic linear algebra operations. Due to some unforseen issues regarding cublas interop this section
+will involve coding only in the comments, where you will fill in some code in comments that performs
+the equivalent linear algebra operation given in one or more cuBLAS calls. Because you won't have an 
+easy way to test this we won't be too harsh but please try your best and reference the cuBLAS API documentation
+and examples as needed.
+
+To do:
+------------------
+
+Convert the BLAS kernels to cublas calls by adding comments for sections marked "TODO" in raytrace.cu .
+
+
+
+Notes:
+------------------
+
+You'll need to deal with the column major difference during the application
+of the scaling and rotation matrices. Since everything else is some form of a
+vector of size 3 we don't need to worry about it that much throughout the rest of the code.
+
+
+
+
+Question 2: Matrix multiplication (coding) (40 pts)
+--------------------------------------------------------
+--------------------------------------------------------
+
+
+Introduction:
+------------------
+
+Since raytracing never actually performs a matrix multiplication we have included
+a seperate program to complete in the folder matrixmul. This will be simply performing
+the given matrix multiplications using the cublas api and checking against the given cpu code. 
+
+To do:
+------------------
+
+Try to complete Question 1 first, but it is not required. 
+
+Then, just fill in the TODOs implementing the matrix multiplications with
+the generalized matrix multiplication operation included in cublas. You can test your results
+against the given cpu code. 
+
+
+
+Notes:
+------------------
