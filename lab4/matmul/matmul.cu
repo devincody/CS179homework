@@ -47,13 +47,13 @@ int main(int argc, char *argv[]) {
     // A * B
     // TODO: do this on GPU too with cuBLAS, copy result back, and printf it to check
 
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 
-                N, N, M, 
-                &alpha, 
-                d_A, N,
-                d_B, M,
-                &beta,
-                d_res1, N);
+    // cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 
+    //             N, N, M, 
+    //             &alpha, 
+    //             d_A, N,
+    //             d_B, M,
+    //             &beta,
+    //             d_res1, N);
 
     cudaMemcpy(&gpu_results1, d_res1, N*N*sizeof(double), cudaMemcpyDeviceToHost);
 
