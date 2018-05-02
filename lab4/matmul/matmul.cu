@@ -92,5 +92,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_res1);
     cudaFree(d_res2);
 
-    cublasCreate(handle);
+    cublasDestroy(handle);
 }
