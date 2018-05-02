@@ -81,6 +81,12 @@ int main(int argc, char *argv[]) {
                 &beta,
                 d_res2, M);
 
+    for (int i = 0; i < M * N; ++i)
+    {
+        printf("A[%d]: %f\n", i, A[i]);
+        printf("B[%d]: %f\n", i, B[i]);
+    }
+
     cudaMemcpy(&gpu_results2, d_res2, M*M*sizeof(double), cudaMemcpyDeviceToHost);
 
     printf("\nA^T * B^T\n");
