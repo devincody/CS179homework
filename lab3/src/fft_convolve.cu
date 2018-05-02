@@ -98,36 +98,55 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     // Thread index for accessing global memory
     int indx = blockIdx.x*blockDim.x + threadIdx.x;
-    // Thread index for accessing shared memory
-    int tid = threadIdx.x;
+    // Thread index for accessing shared memory made const for speedup
+    const int tid = threadIdx.x;
 
     // Shared memory allocated dynamically from kernal call
     extern __shared__ float sdata[];
 
     // Pull (real) data into shared memory
     // Memory is coalleced
-    sdata[tid] = out_data[indx].x;
+    sdata[tid] = abs(out_data[indx].x);
     indx += gridDim.x*blockDim.x;
 
-    while (indx < padded_length){
-        if (sdata[tid] < out_data[indx].x){
-            sdata[tid] = out_data[indx].x;
-        }
+    while (indx < padded_length){ // if there are more data values than total threads,
+        sdata[tid] = max(abs(out_data[indx].x), sdata[tid]); // use max to avoid if statement
         indx += gridDim.x*blockDim.x;
     }
 
-    __syncthreads();
+    __syncthreads(); // make sure shared memory is ready
 
     for (int s= blockDim.x/2; s > 0; s>>=1){
+        /*
+        This implementation uses the tecnique of sequential addressing.
+        Each thread is responsible for finding the max between the data
+        at tid and tid+s. This approach allows us to avoid bank conflicts
+        since the stride is always 1 
+        */
         if(tid < s){
-            // sdata[tid] += sdata[tid + s]; // CHANGE
-            sdata[tid] = (sdata[tid] < sdata[tid+s])?sdata[tid+s]:sdata[tid];
+            // s = 16, 8, 4, 2, 1
+            // here each thread finds the max between the data at tid and
+            // and address on the "other side", a distance of s away.
+            sdata[tid] = max(sdata[tid+s],sdata[tid]);
         }
         __syncthreads();
     }
 
+    // In emperical tests, unrolling the loop did NOT result in speed gains
+    // if (tid < 16){
+    //     sdata[tid] = max(sdata[tid+16],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+8],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+4],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+2],sdata[tid]);
+    //     sdata[tid] = max(sdata[tid+1],sdata[tid]);
+    // }
+    // __syncthreads();
 
+    // atomicMax is used by each thread to compare the value of the data point
+    // at the first index (i.e. the max for the particular warp) with the current
+    // maximum value in global memory.
     if (tid == 0) atomicMax(max_abs_val, sdata[0]);
+
 }
 
 __global__
