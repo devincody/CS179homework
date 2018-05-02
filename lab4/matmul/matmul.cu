@@ -14,13 +14,13 @@
 #define IDX2C(i,j,ld) (((j)*(ld))+(i))
 
 int main(int argc, char *argv[]) {
-    float A[N * M] = {1, 2, 3, 4, 5, 6};
-    float B[M * N] = {1, 2, 3, 4, 5, 6};
-    float res1[N * N];
-    float res2[M * M];
+    double A[N * M] = {1, 2, 3, 4, 5, 6};
+    double B[M * N] = {1, 2, 3, 4, 5, 6};
+    double res1[N * N];
+    double res2[M * M];
 
-    float gpu_results1[N * N];
-    float gpu_results2[M * M];
+    double gpu_results1[N * N];
+    double gpu_results2[M * M];
 
     int i, j, k;
 
