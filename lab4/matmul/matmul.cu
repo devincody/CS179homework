@@ -19,6 +19,9 @@ int main(int argc, char *argv[]) {
     float res1[N * N];
     float res2[M * M];
 
+    float gpu_results1[N * N];
+    float gpu_results2[M * M];
+
     int i, j, k;
 
     //TODO: cudaMalloc buffers, copy these to device, etc.
@@ -43,16 +46,6 @@ int main(int argc, char *argv[]) {
 
     // A * B
     // TODO: do this on GPU too with cuBLAS, copy result back, and printf it to check
-    printf("A * B\n");
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            res1[IDX2C(i, j, N)] = 0;
-            for (k = 0; k < M; k++) {
-                res1[IDX2C(i, j, N)] += A[IDX2C(i, k, N)] * B[IDX2C(k, j, M)];
-            }
-            printf("[%d, %d] = %f\n", i, j, res1[IDX2C(i, j, N)]);
-        }
-    }
 
     cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 
                 N, N, M, 
@@ -62,20 +55,23 @@ int main(int argc, char *argv[]) {
                 &beta,
                 d_res1, N);
 
-    cudaMemcpy(&res1, d_res1, N*N*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&gpu_results1, d_res1, N*N*sizeof(double), cudaMemcpyDeviceToHost);
+
+    printf("A * B\n");
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            res1[IDX2C(i, j, N)] = 0;
+            for (k = 0; k < M; k++) {
+                res1[IDX2C(i, j, N)] += A[IDX2C(i, k, N)] * B[IDX2C(k, j, M)];
+            }
+            printf("[%d, %d] = %f (cpu) and %f (gpu)\n", i, j, res1[IDX2C(i, j, N)], gpu_results1[IDX2C(i, j, N)]);
+        }
+    }
+
+
 
     // A^T * B^T
     // TODO: do this on GPU too with cuBLAS, copy result back, and printf to check it
-    printf("\nA^T * B^T\n");
-    for (i = 0; i < M; i++) {
-        for (j = 0; j < M; j++) {
-            res2[IDX2C(i, j, M)] = 0;
-            for (k = 0; k < N; k++) {
-                res2[IDX2C(i, j, M)] += A[IDX2C(k, i, N)] * B[IDX2C(j, k, M)];
-            }
-            printf("[%d, %d] = %f\n", i, j, res2[IDX2C(i, j, M)]);
-        }
-    }
 
     cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T,
                 M, M, N,
@@ -85,7 +81,20 @@ int main(int argc, char *argv[]) {
                 &beta,
                 d_res2, M);
 
-    cudaMemcpy(&res2, d_res2, M*M*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&gpu_results2, d_res2, M*M*sizeof(double), cudaMemcpyDeviceToHost);
+
+    printf("\nA^T * B^T\n");
+    for (i = 0; i < M; i++) {
+        for (j = 0; j < M; j++) {
+            res2[IDX2C(i, j, M)] = 0;
+            for (k = 0; k < N; k++) {
+                res2[IDX2C(i, j, M)] += A[IDX2C(k, i, N)] * B[IDX2C(j, k, M)];
+            }
+            printf("[%d, %d] = %f (cpu) and %f (gpu)\n", i, j, res2[IDX2C(i, j, N)], gpu_results2[IDX2C(i, j, N)]);
+        }
+    }
+
+
 
     cudaFree(d_A);
     cudaFree(d_B);
