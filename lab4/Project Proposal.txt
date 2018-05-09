@@ -1,0 +1,9 @@
+Lattice Boltzmann-Based Computational Fluid Dynamics Simulation
+
+The Lattice Boltzmann algorithm is a method of predicting the flow of fluid through approximations to the Navier-Stokes equation. The algorithm defines a fluid on a two-dimesnsional grid where every location has an associated pressure, velocity, and density. These parameters are then updated every time step according to the various transport equations.
+
+The setup of the problem on a grid lends itself quite nicely to parallelization. While for the most part, the GPU should be able to run in lock-step, the addition of boundary conditions will make minimizing thread divergence an interesting task. Furthermore, I'd like to make use of cuBLAS for some of the matrix handeling functions and apply my experice with memory optimizations to make the simulation run as fast as possible. 
+
+
+https://www.ndsu.edu/fileadmin/physics.ndsu.edu/Wagner/LBbook.pdf
+https://www.math.nyu.edu/~billbao/report930.pdf

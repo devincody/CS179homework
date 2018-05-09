@@ -39,7 +39,9 @@ __device__ void copy_vec(double *a, double *b) {
   //TODO write a cublas version in comments 
   /*
   #####################################
-  cublasDcopy(handle, 3, a, 1, b, 1);
+  int len_of_vector = 3;
+  int stride = 1;
+  cublasDcopy(handle, len_of_vector, a, stride, b, stride);
   #####################################
   */
   b[0] = a[0];
@@ -57,12 +59,15 @@ __device__ void axpy(double *a, double b, double *c, double *d) {
 
   /*
   #####################################
+  int len_of_vector = 3;
+  int stride = 1;
+
   // copy c into d
-  cublasDcopy(handle, 3, c, 1, d, 1);
+  cublasDcopy(handle, len_of_vector, c, stride, d, stride);
 
 
   // execute d[] = b*a[] + d[]
-  cublasDaxpy(handle, 3, &b, a, 1, d, 1)
+  cublasDaxpy(handle, len_of_vector, &b, a, stride, d, stride)
   #####################################
   */
   d[0] = (a[0] * b) + c[0];
@@ -75,11 +80,14 @@ __device__ void mult_vec_scalar(double *a, double b, double *c) {
   //TODO write a cublas version in comments 
   /*
   #####################################
+  int len_of_vector = 3;
+  int stride = 1;
+
   //copy vector a to c
-  cublasDcopy(handle, 3, a, 1, c, 1);
+  cublasDcopy(handle, len_of_vector, a, stride, c, stride);
   
   //use scaling function
-  cublasDscal(handle, 3, &b, c, 1)
+  cublasDscal(handle, len_of_vector, &b, c, stride)
   #####################################
   */
   c[0] = a[0] * b;
@@ -93,12 +101,15 @@ __device__ void elem_add(double *a, double *b, double *c) {
 
   /*
   #####################################
-  //copy vector a to c
-  cublasDcopy(handle, 3, a, 1, c, 1);
-  
-  double alpha = 1;
+  int len_of_vector = 3;
+  int stride = 1;
 
-  cublasDaxpy(handle, 3, &alpha, b, 1, c, 1);
+  //copy vector a to c
+  cublasDcopy(handle, len_of_vector, a, stride, c, stride);
+  
+  double one = 1;
+
+  cublasDaxpy(handle, len_of_vector, &one, b, stride, c, stride);
   #####################################
   */
 
@@ -112,12 +123,15 @@ __device__ void elem_sub(double *a, double *b, double *c) {
   //TODO write a cublas version in comments 
   /*
   #####################################
-  //copy vector a to c
-  cublasDcopy(handle, 3, a, 1, c, 1);
-  
-  double alpha = -1;
+  int len_of_vector = 3;
+  int stride = 1;
 
-  cublasDaxpy(handle, 3, &alpha, b, 1, c, 1);
+  //copy vector a to c
+  cublasDcopy(handle, len_of_vector, a, stride, c, stride);
+  
+  double minus_one = -1;
+
+  cublasDaxpy(handle, len_of_vector, &minus_one, b, stride, c, stride);
   #####################################
   */
   c[0] = a[0] - b[0];
@@ -141,9 +155,15 @@ __device__ void gemv(double *a, double *b, double *c){
   then c is given by a*b, however cublasDgemv needs the multiplication
   to be in terms of b*a, so we need to transpose the b matrix.
   #####################################
-  double alpha = 1, beta = 0;
+  int rows_of_matrix = 3;
+  int cols_of_matrix = 3;
+  int lead_dim_of_matrix = 3;
+  int stride = 1;
 
-  cublasDgemv(handle, CUBLAS_OP_T, 3, 3, &alpha, b, 3, a, 1, &beta, c, 1);
+
+  double one = 1, zero = 0;
+
+  cublasDgemv(handle, CUBLAS_OP_T, rows_of_matrix, cols_of_matrix, &one, b, lead_dim_of_matrix, a, stride, &zero, c, stride);
   #####################################
   */
   double a0 = a[0];
@@ -170,9 +190,12 @@ __device__ double vec_norm(double *vec) {
 
   /*
   #####################################
+  int len_of_vector = 3;
+  int stride = 1;
+
   double result = 0;
 
-  cublasDnrm2(handle, 3, vec, 1, &result);
+  cublasDnrm2(handle, len_of_vector, vec, stride, &result);
   return result;
   #####################################
   */
@@ -185,14 +208,17 @@ __device__ void vec_scale(double *vec) {
   //TODO write a cublas version in comments 
   /*
   #####################################
+  int len_of_vector = 3;
+  int stride = 1;
+
   double n = 0;
 
   //find normalization value
-  cublasDnrm2(handle, 3, vec, 1, &n);
+  cublasDnrm2(handle, len_of_vector, vec, stride, &n);
   n = 1.0/n;
 
   //use scaling function
-  cublasDscal(handle, 3, &n, vec, 1);
+  cublasDscal(handle, len_of_vector, &n, vec, stride);
   #####################################
   */
   double n = vec_norm(   vec);
@@ -208,9 +234,12 @@ __device__ double vec_dot(double *a, double *b) {
   //TODO write a cublas version in comments   
   /*
   #####################################
+  int len_of_vector = 3;
+  int stride = 1;
+
   double result = 0;
 
-  cublasDdot(handle, 3, a, 1, b, 1, &result);
+  cublasDdot(handle, len_of_vector, a, stride, b, stride, &result);
   return result;
   #####################################
   */
