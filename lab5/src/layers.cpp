@@ -351,13 +351,13 @@ void Dense::backward_pass(float learning_rate)
     // Note that grad_out_batch is the next layer's grad_in_batch, and
     // grad_in_batch is the previous layer's grad_out_batch
 
-    //CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T,
-        in_size, out_size, batch_size,
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
+        in_size, batch_size, out_size,
         &one,
-        in_batch, in_size,
+        weights, in_size,
         grad_out_batch, out_size,
         &zero,
-        grad_weights, in_size) );
+        grad_in_batch, in_size) );
 
 
     // Descend along the gradients of weights and biases using cublasSaxpy
@@ -365,7 +365,17 @@ void Dense::backward_pass(float learning_rate)
 
     // TODO (set 5): weights = weights + eta * grad_weights
 
+    CUBLAS_CALL( cublasSaxpy(cublasHandle,
+                             &eta, in_size*out_size,
+                             grad_weights, 1,
+                             weights, 1));
+
     // TODO (set 5): biases = biases + eta * grad_biases
+
+    CUBLAS_CALL( cublasSaxpy(cublasHandle,
+                             &eta, out_size,
+                             grad_biases, 1,
+                             biases, 1));
 }
 
 /******************************************************************************/
