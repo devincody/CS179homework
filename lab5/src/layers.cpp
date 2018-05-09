@@ -230,7 +230,7 @@ Input::Input(int n, int c, int h, int w,
     //https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSetTensor4dDescriptor
     // TODO (set 5): set output tensor descriptor out_shape to have format
     //               NCHW, be floats, and have dimensions n, c, h, w
-    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w)
+    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w);
     allocate_buffers();
 }
 
@@ -366,14 +366,14 @@ void Dense::backward_pass(float learning_rate)
     // TODO (set 5): weights = weights + eta * grad_weights
 
     CUBLAS_CALL( cublasSaxpy(cublasHandle,
-                             &eta, in_size*out_size,
+                             in_size*out_size, &eta, 
                              grad_weights, 1,
                              weights, 1));
 
     // TODO (set 5): biases = biases + eta * grad_biases
 
     CUBLAS_CALL( cublasSaxpy(cublasHandle,
-                             &eta, out_size,
+                             out_size, &eta,
                              grad_biases, 1,
                              biases, 1));
 }
@@ -399,7 +399,7 @@ Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
     // TODO (set 5): set descriptor of output minibatch, out_shape, to have the
     //               same parameters as in_shape and be ordered NCHW
 
-    cudnnGetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w);
+    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w);
 
     allocate_buffers();
 
