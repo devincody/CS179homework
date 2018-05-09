@@ -299,6 +299,14 @@ void Dense::forward_pass()
 
     // TODO (set 5): out_batch = weights^T * in_batch (without biases)
     
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N,
+        out_size, batch_size, in_size,
+        &one,
+        weights, in_size,
+        in_batch, in_size,
+        &zero,
+        out_batch, out_size) );
+
     // out_batch += bias * 1_vec^T (to distribute bias to all outputs in
     // this minibatch of data)
     CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T,
@@ -322,6 +330,14 @@ void Dense::backward_pass(float learning_rate)
 
     // TODO (set 5): grad_weights = in_batch * (grad_out_batch)^T
 
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T,
+        in_size, out_size, batch_size,
+        &one,
+        in_batch, in_size,
+        grad_out_batch, out_size,
+        &zero,
+        grad_weights, in_size) );
+
     // grad_biases = grad_out_batch * 1_vec
     CUBLAS_CALL( cublasSgemv(cublasHandle, CUBLAS_OP_N,
         out_size, batch_size,
@@ -334,6 +350,15 @@ void Dense::backward_pass(float learning_rate)
     // TODO (set 5): grad_in_batch = W * grad_out_batch
     // Note that grad_out_batch is the next layer's grad_in_batch, and
     // grad_in_batch is the previous layer's grad_out_batch
+
+    //CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T,
+        in_size, out_size, batch_size,
+        &one,
+        in_batch, in_size,
+        grad_out_batch, out_size,
+        &zero,
+        grad_weights, in_size) );
+
 
     // Descend along the gradients of weights and biases using cublasSaxpy
     float eta = -learning_rate;
@@ -359,19 +384,26 @@ Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
     int n, c, h, w, nStride, cStride, hStride, wStride;
 
     // TODO (set 5): get descriptor of input minibatch, in_shape
+    cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
 
     // TODO (set 5): set descriptor of output minibatch, out_shape, to have the
     //               same parameters as in_shape and be ordered NCHW
+
+    cudnnGetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w);
 
     allocate_buffers();
 
     // TODO (set 5): create activation descriptor, and set it to have the given
     //               activationMode, propagate NaN's, and have coefficient coef
+    cudnnSetActivationDescriptor(activation_desc, activationMode, CUDNN_PROPAGATE_NAN, coef);
 }
 
 Activation::~Activation()
 {
     // TODO (set 5): destroy the activation descriptor
+
+    cudnnDestroyActivationDescriptor(activation_desc);
+
 }
 
 /**
@@ -383,6 +415,11 @@ void Activation::forward_pass()
     float one = 1.0, zero = 0.0;
 
     // TODO (set 5): apply activation, i.e. out_batch = activation(in_batch)
+    cudnnActivationForward(cudnnHandle, activation_desc, 
+                           &one,
+                           in_shape, in_batch,
+                           &zero,
+                           out_shape, out_batch);
 }
 
 /**
@@ -396,6 +433,16 @@ void Activation::backward_pass(float learning_rate)
     float one = 1.0, zero = 0.0;
 
     // TODO (set 5): do activation backwards, i.e. compute grad_in_batch
+
+    cudnnActivationBackward(cudnnHandle, activation_desc,
+                            &one,
+                            out_shape, out_batch,
+                            out_shape, grad_out_batch,
+                            in_shape, in_batch,
+                            &zero,
+                            in_shape, grad_in_batch);
+
+
 }
 
 /******************************************************************************/
