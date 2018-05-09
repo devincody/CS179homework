@@ -403,9 +403,12 @@ Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
 
     allocate_buffers();
 
+
     // TODO (set 5): create activation descriptor, and set it to have the given
     //               activationMode, propagate NaN's, and have coefficient coef
+    CUDNN_CALL(cudnnCreateActivationDescriptor(&activation_desc));
     CUDNN_CALL(cudnnSetActivationDescriptor(activation_desc, activationMode, CUDNN_PROPAGATE_NAN, coef));
+    // std::cout << "set activation" << std::endl;
 }
 
 Activation::~Activation()
