@@ -230,7 +230,7 @@ Input::Input(int n, int c, int h, int w,
     //https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSetTensor4dDescriptor
     // TODO (set 5): set output tensor descriptor out_shape to have format
     //               NCHW, be floats, and have dimensions n, c, h, w
-    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w);
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
     allocate_buffers();
 }
 
@@ -394,25 +394,25 @@ Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
     int n, c, h, w, nStride, cStride, hStride, wStride;
 
     // TODO (set 5): get descriptor of input minibatch, in_shape
-    cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
+    CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride));
 
     // TODO (set 5): set descriptor of output minibatch, out_shape, to have the
     //               same parameters as in_shape and be ordered NCHW
 
-    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w);
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w));
 
     allocate_buffers();
 
     // TODO (set 5): create activation descriptor, and set it to have the given
     //               activationMode, propagate NaN's, and have coefficient coef
-    cudnnSetActivationDescriptor(activation_desc, activationMode, CUDNN_PROPAGATE_NAN, coef);
+    CUDNN_CALL(cudnnSetActivationDescriptor(activation_desc, activationMode, CUDNN_PROPAGATE_NAN, coef));
 }
 
 Activation::~Activation()
 {
     // TODO (set 5): destroy the activation descriptor
 
-    cudnnDestroyActivationDescriptor(activation_desc);
+    CUDNN_CALL(cudnnDestroyActivationDescriptor(activation_desc));
 
 }
 
@@ -425,11 +425,11 @@ void Activation::forward_pass()
     float one = 1.0, zero = 0.0;
 
     // TODO (set 5): apply activation, i.e. out_batch = activation(in_batch)
-    cudnnActivationForward(cudnnHandle, activation_desc, 
+    CUDNN_CALL(cudnnActivationForward(cudnnHandle, activation_desc, 
                            &one,
                            in_shape, in_batch,
                            &zero,
-                           out_shape, out_batch);
+                           out_shape, out_batch));
 }
 
 /**
@@ -444,13 +444,13 @@ void Activation::backward_pass(float learning_rate)
 
     // TODO (set 5): do activation backwards, i.e. compute grad_in_batch
 
-    cudnnActivationBackward(cudnnHandle, activation_desc,
+    CUDNN_CALL(cudnnActivationBackward(cudnnHandle, activation_desc,
                             &one,
                             out_shape, out_batch,
                             out_shape, grad_out_batch,
                             in_shape, in_batch,
                             &zero,
-                            in_shape, grad_in_batch);
+                            in_shape, grad_in_batch));
 
 
 }
