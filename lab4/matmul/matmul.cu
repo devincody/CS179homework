@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
             for (k = 0; k < N; k++) {
                 res2[IDX2C(i, j, M)] += A[IDX2C(k, i, N)] * B[IDX2C(j, k, M)];
             }
-            printf("[%d, %d] = %f (cpu) and %f (gpu)\n", i, j, res2[IDX2C(i, j, N)], gpu_results2[IDX2C(i, j, N)]);
+            printf("[%d, %d] = %f (cpu) and %f (gpu)\n", i, j, res2[IDX2C(i, j, M)], gpu_results2[IDX2C(i, j, M)]);
         }
     }
 
