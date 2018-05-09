@@ -227,9 +227,10 @@ Input::Input(int n, int c, int h, int w,
     cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
 : Layer(nullptr, cublasHandle, cudnnHandle)
 {
+    //https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSetTensor4dDescriptor
     // TODO (set 5): set output tensor descriptor out_shape to have format
     //               NCHW, be floats, and have dimensions n, c, h, w
-
+    cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w)
     allocate_buffers();
 }
 
@@ -297,7 +298,7 @@ void Dense::forward_pass()
     float one = 1.0, zero = 0.0;
 
     // TODO (set 5): out_batch = weights^T * in_batch (without biases)
-
+    
     // out_batch += bias * 1_vec^T (to distribute bias to all outputs in
     // this minibatch of data)
     CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T,
