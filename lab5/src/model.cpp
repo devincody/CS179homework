@@ -192,16 +192,16 @@ void Model::train(const float *train_X, float *train_Y, float lr, int n_examples
         // Train on every complete batch
         for (long curr_batch = 0; curr_batch < n_batches; curr_batch++)
         {
-            std::cout <<"1batch = " << curr_batch << std::endl;
+            // std::cout <<"1batch = " << curr_batch << std::endl;
             const float *curr_batch_X = train_X + curr_batch * in_size;
             float *curr_batch_Y = train_Y + curr_batch * out_size;
             train_on_batch(curr_batch_X, curr_batch_Y, lr);
-            std::cout <<"2batch = " << curr_batch << std::endl;
+            // std::cout <<"2batch = " << curr_batch << std::endl;
             // Update training statistics for this minibatch
             acc += this->layers->back()->get_accuracy();
-            std::cout <<"3batch = " << curr_batch << std::endl;
+            // std::cout <<"3batch = " << curr_batch << std::endl;
             loss += this->layers->back()->get_loss();
-            std::cout <<"4batch = " << curr_batch << std::endl;
+            // std::cout <<"4batch = " << curr_batch << std::endl;
         }
 
         std::cout << "Loss: " << loss / n_batches;

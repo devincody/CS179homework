@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
     // Train the model on the training set for 25 epochs
     std::cout << "Predicting on " << n_classes << " classes." << std::endl;
-    model->train(train_X, train_Y, 0.03f, n_train, 25);
+    model->train(train_X, train_Y, 0.03f, n_train, 35);
 
     // Load test set
     int n_test;

@@ -678,8 +678,12 @@ SoftmaxCrossEntropy::SoftmaxCrossEntropy(Layer *prev,
     // TODO (set 5): get descriptor of input minibatch, in_shape, into variables
     //               declared above
 
+    CUDNN_CALL( cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride));
+
     // TODO (set 5): set descriptor of output minibatch, out_shape, to have the
     //               same parameters as in_shape and be ordered NCHW
+
+    CUDNN_CALL( cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w));
 
     allocate_buffers();
 }
@@ -692,6 +696,13 @@ void SoftmaxCrossEntropy::forward_pass()
 
     // TODO (set 5): do softmax forward pass using accurate softmax and
     //               per instance mode. store result in out_batch.
+
+    CUDNN_CALL(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_INSTANCE,
+                                   &one,
+                                   in_shape, in_batch,
+                                   &zero,
+                                   out_shape, out_batch));
+
 }
 
 /**
@@ -714,8 +725,17 @@ void SoftmaxCrossEntropy::backward_pass(float lr)
 
     // TODO (set 5): first, copy grad_in_batch = out_batch
 
+    CUBLAS_CALL(cublasScopy(cublasHandle, size,
+                            out_batch, 1,
+                            grad_in_batch, 1));
+
     // TODO (set 5): set grad_in_batch = grad_in_batch - grad_out_batch using
     //               cublasSaxpy
+
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, size,
+                            &minus_one,
+                            grad_out_batch, 1,
+                            grad_in_batch, 1));
 
     // normalize the gradient by the batch size (do it once in the beginning, so
     // we don't have to worry about it again later)
