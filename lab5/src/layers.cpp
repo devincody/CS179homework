@@ -478,6 +478,8 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     // TODO (set 6): Get the input tensor descriptor in_shape into the variables
     //               declared above
 
+    CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &n_stride, &c_stride, &h_stride, &w_stride));
+
     // Compute nubmer of weights and biases
     this->n_weights = n_kernels * c * kernel_size * kernel_size;
     this->n_biases = n_kernels;
@@ -485,6 +487,10 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     // TODO (set 6): Create & set a filter descriptor for a float array ordered
     //               NCHW, w/ shape n_kernels x c x kernel_size x kernel_size.
     //               This is class field filter_desc.
+
+    CUDNN_CALL(cudnnCreateFilterDescriptor(&filter_desc));
+    CUDNN_CALL(cudnnSetFilter4dDescriptor(filter_desc, dtype, CUDNN_TENSOR_NCHW, n_kernels, c, kernel_size, kernel_size));
+
 
     // Set tensor descriptor for biases (to broadcast adding biases)
     CUDNN_CALL( cudnnCreateTensorDescriptor(&bias_desc) );
@@ -496,6 +502,11 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     //               padding (x and y), a stride (in both x and y) equal to
     //               argument stride, and horizontal and vertical dilation
     //               factors of 1. This is class field conv_desc.
+
+    CUDNN_CALL(cudnnCreateConvolutionDescriptor(&conv_desc));
+    int padding = 0;
+    int dilation = 0;
+    CUDNN_CALL(cudnnSetConvolution2dDescriptor(conv_desc, padding, padding, stride, stride, dilation, dilation, CUDNN_CONVOLUTION, dtype));
 
     // Set output shape descriptor
     CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(conv_desc,
@@ -524,6 +535,9 @@ Conv2D::~Conv2D()
     CUDNN_CALL( cudnnDestroyTensorDescriptor(bias_desc) );
 
     // TODO (set 6): Destroy filter_desc and conv_desc
+    CUDNN_CALL(cudnnDestroyFilterDescriptor(filter_desc));
+    CUDNN_CALL(cudnnDestroyConvolutionDescriptor(conv_desc));
+
 }
 
 /**
@@ -557,6 +571,16 @@ void Conv2D::forward_pass()
     //               Use class fields workspace and workspace_size for the
     //               workspace related arguments in the function call, and
     //               use fwd_algo for the algorithm.
+
+    CUDNN_CALL(cudnnConvolutionForward(cudnnHandle,
+                                       &one,
+                                       in_shape, in_batch,
+                                       filter_desc, weights, // WEIGHTS??????
+                                       conv_desc, 
+                                       fwd_algo,
+                                       workspace, workspace_size,
+                                       &zero,
+                                       out_shape, out_batch));
 
     CUDNN_CALL( cudnnAddTensor(cudnnHandle,
         &one, bias_desc, biases,
