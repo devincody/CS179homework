@@ -602,6 +602,16 @@ void Conv2D::backward_pass(float learning_rate)
     //               workspace related arguments in the function call, and use
     //               bwd_filter_algo for the algorithm.
 
+    CUDNN_CALL( cudnnConvolutionBackwardFilter(cudnnHandle,
+                                                &one,
+                                                in_shape, in_batch,
+                                                out_shape, grad_out_batch,
+                                                conv_desc,
+                                                bwd_filter_algo,
+                                                workspace, workspace_size,
+                                                &zero,
+                                                filter_desc, grad_weights));
+
 
     // Compute the gradient with respect to the biases
     CUDNN_CALL( cudnnConvolutionBackwardBias(cudnnHandle,
@@ -615,13 +625,27 @@ void Conv2D::backward_pass(float learning_rate)
     //               workspace related arguments in the function call and use
     //               bwd_data_algo for the algorithm.
 
+    CUDNN_CALL( cudnnConvolutionBackwardData(cudnnHandle,
+                                             &one,
+                                             filter_desc, weights,
+                                             out_shape, grad_out_batch,
+                                             conv_desc,
+                                             bwd_filter_algo,
+                                             workspace, workspace_size,
+                                             &zero,
+                                             in_shape, grad_in_batch));
+
 
     // Descend along the gradients of the weights and biases using cublasSaxpy
     float eta = -learning_rate;
     
     // TODO (set 6): weights = weights + eta * grad_weights
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, n_weights,
+                            &eta, grad_weights, weights));
 
     // TODO (set 6): biases = biases + eta * grad_biases
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, n_biases,
+                            &eta, grad_biases, biases));
 }
 
 
@@ -641,6 +665,13 @@ Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
     // TODO (set 6): Create and set pooling descriptor to have the given mode,
     //               propagate NaN's, have window size (stride x stride), have
     //               no padding, and have stride (stride x stride)
+    int padding = 0;
+    CUDNN_CALL(cudnnCreatePoolingDescriptor(&pooling_desc));
+    CUDNN_CALL(cudnnSetPooling2dDescriptor(pooling_desc, mode,
+                                           CUDNN_PROPAGATE_NAN,
+                                           stride, stride,
+                                           padding, padding,
+                                           stride, stride));
 
     // Set output shape
     int n, c, h, w;
@@ -656,6 +687,8 @@ Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
 Pool2D::~Pool2D()
 {
     // TODO (set 6): destroy the pooling descriptor
+    CUDNN_CALL(cudnnDestroyPoolingDescriptor(pooling_desc));
+
 }
 
 /**
@@ -666,6 +699,12 @@ void Pool2D::forward_pass()
     float zero = 0, one = 1;
 
     // TODO (set 6): do pooling in forward direction, store in out_batch
+
+    CUDNN_CALL(cudnnPoolingForward(cudnnHandle, pooling_desc,
+                                   &one,
+                                   in_shape, in_batch,
+                                   &zero,
+                                   out_shape, out_batch));
 }
 
 /**
@@ -676,6 +715,14 @@ void Pool2D::backward_pass(float learning_rate)
     float zero = 0, one = 1;
 
     // TODO (set 6): do pooling backwards, store gradient in grad_in_batch
+
+    CUDNN_CALL(cudnnPoolingBackward(cudnnHandle, pooling_desc,
+                                    &one,
+                                    out_shape, out_batch,
+                                    out_shape, grad_out_batch,
+                                    in_shape, in_batch,
+                                    &zero,
+                                    in_shape, grad_in_batch));
 }
 
 
