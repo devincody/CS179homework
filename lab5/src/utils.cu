@@ -110,12 +110,10 @@ __global__ void CrossEntropyKernel(float* pred_Y, float* true_Y, float *loss,
     int tid = blockDim.x*blockIdx.x + threadIdx.x;
     const int local_tid = threadIdx.x;
 
-    shmem[local_tid] = log(pred_Y[tid])*true_Y[tid];
-    tid += gridDim.x*blockDim.x;
+    shmem[local_tid] = 0.0;
 
     while (tid < (n*c*h*w) ){
-
-        shmem[local_tid] += log(pred_Y[tid])*true_Y[tid];
+        shmem[local_tid] -= log(pred_Y[tid]) * true_Y[tid];
         tid += gridDim.x*blockDim.x;
     }
 
@@ -123,7 +121,7 @@ __global__ void CrossEntropyKernel(float* pred_Y, float* true_Y, float *loss,
 
     for (int s = blockDim.x/2; s > 0; s /= 2){
         if (local_tid < s){
-            shmem[local_tid] += log(pred_Y[local_tid+s])*true_Y[local_tid+s];
+            shmem[local_tid] += shmem[local_tid + s];
         }
         __syncthreads();
     }
