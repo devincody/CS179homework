@@ -403,9 +403,12 @@ Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
 
     allocate_buffers();
 
+
     // TODO (set 5): create activation descriptor, and set it to have the given
     //               activationMode, propagate NaN's, and have coefficient coef
+    CUDNN_CALL(cudnnCreateActivationDescriptor(&activation_desc));
     CUDNN_CALL(cudnnSetActivationDescriptor(activation_desc, activationMode, CUDNN_PROPAGATE_NAN, coef));
+    // std::cout << "set activation" << std::endl;
 }
 
 Activation::~Activation()
@@ -475,6 +478,8 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     // TODO (set 6): Get the input tensor descriptor in_shape into the variables
     //               declared above
 
+    CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &n_stride, &c_stride, &h_stride, &w_stride));
+
     // Compute nubmer of weights and biases
     this->n_weights = n_kernels * c * kernel_size * kernel_size;
     this->n_biases = n_kernels;
@@ -482,6 +487,10 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     // TODO (set 6): Create & set a filter descriptor for a float array ordered
     //               NCHW, w/ shape n_kernels x c x kernel_size x kernel_size.
     //               This is class field filter_desc.
+
+    CUDNN_CALL(cudnnCreateFilterDescriptor(&filter_desc));
+    CUDNN_CALL(cudnnSetFilter4dDescriptor(filter_desc, dtype, CUDNN_TENSOR_NCHW, n_kernels, c, kernel_size, kernel_size));
+
 
     // Set tensor descriptor for biases (to broadcast adding biases)
     CUDNN_CALL( cudnnCreateTensorDescriptor(&bias_desc) );
@@ -493,6 +502,16 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     //               padding (x and y), a stride (in both x and y) equal to
     //               argument stride, and horizontal and vertical dilation
     //               factors of 1. This is class field conv_desc.
+
+    CUDNN_CALL(cudnnCreateConvolutionDescriptor(&conv_desc));
+    int padding = 0;
+    int dilation = 1;
+    CUDNN_CALL(cudnnSetConvolution2dDescriptor(conv_desc, 
+                                               padding, padding,
+                                               stride, stride, 
+                                               dilation, dilation, 
+                                               CUDNN_CONVOLUTION, dtype));
+
 
     // Set output shape descriptor
     CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(conv_desc,
@@ -521,6 +540,9 @@ Conv2D::~Conv2D()
     CUDNN_CALL( cudnnDestroyTensorDescriptor(bias_desc) );
 
     // TODO (set 6): Destroy filter_desc and conv_desc
+    CUDNN_CALL(cudnnDestroyFilterDescriptor(filter_desc));
+    CUDNN_CALL(cudnnDestroyConvolutionDescriptor(conv_desc));
+
 }
 
 /**
@@ -555,6 +577,16 @@ void Conv2D::forward_pass()
     //               workspace related arguments in the function call, and
     //               use fwd_algo for the algorithm.
 
+    CUDNN_CALL(cudnnConvolutionForward(cudnnHandle,
+                                       &one,
+                                       in_shape, in_batch,
+                                       filter_desc, weights, // WEIGHTS??????
+                                       conv_desc, 
+                                       fwd_algo,
+                                       workspace, workspace_size,
+                                       &zero,
+                                       out_shape, out_batch));
+
     CUDNN_CALL( cudnnAddTensor(cudnnHandle,
         &one, bias_desc, biases,
         &one, out_shape, out_batch) );
@@ -575,6 +607,16 @@ void Conv2D::backward_pass(float learning_rate)
     //               workspace related arguments in the function call, and use
     //               bwd_filter_algo for the algorithm.
 
+    CUDNN_CALL( cudnnConvolutionBackwardFilter(cudnnHandle,
+                                                &one,
+                                                in_shape, in_batch,
+                                                out_shape, grad_out_batch,
+                                                conv_desc,
+                                                bwd_filter_algo,
+                                                workspace, workspace_size,
+                                                &zero,
+                                                filter_desc, grad_weights));
+
 
     // Compute the gradient with respect to the biases
     CUDNN_CALL( cudnnConvolutionBackwardBias(cudnnHandle,
@@ -588,13 +630,31 @@ void Conv2D::backward_pass(float learning_rate)
     //               workspace related arguments in the function call and use
     //               bwd_data_algo for the algorithm.
 
+    CUDNN_CALL( cudnnConvolutionBackwardData(cudnnHandle,
+                                             &one,
+                                             filter_desc, weights,
+                                             out_shape, grad_out_batch,
+                                             conv_desc,
+                                             bwd_data_algo,
+                                             workspace, workspace_size,
+                                             &zero,
+                                             in_shape, grad_in_batch));
+
 
     // Descend along the gradients of the weights and biases using cublasSaxpy
     float eta = -learning_rate;
     
     // TODO (set 6): weights = weights + eta * grad_weights
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, n_weights,
+                            &eta, 
+                            grad_weights, 1,
+                            weights, 1));
 
     // TODO (set 6): biases = biases + eta * grad_biases
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, n_biases,
+                            &eta, 
+                            grad_biases, 1,
+                            biases, 1));
 }
 
 
@@ -614,6 +674,13 @@ Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
     // TODO (set 6): Create and set pooling descriptor to have the given mode,
     //               propagate NaN's, have window size (stride x stride), have
     //               no padding, and have stride (stride x stride)
+    int padding = 0;
+    CUDNN_CALL(cudnnCreatePoolingDescriptor(&pooling_desc));
+    CUDNN_CALL(cudnnSetPooling2dDescriptor(pooling_desc, mode,
+                                           CUDNN_PROPAGATE_NAN,
+                                           stride, stride,
+                                           padding, padding,
+                                           stride, stride));
 
     // Set output shape
     int n, c, h, w;
@@ -629,6 +696,8 @@ Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
 Pool2D::~Pool2D()
 {
     // TODO (set 6): destroy the pooling descriptor
+    CUDNN_CALL(cudnnDestroyPoolingDescriptor(pooling_desc));
+
 }
 
 /**
@@ -639,6 +708,12 @@ void Pool2D::forward_pass()
     float zero = 0, one = 1;
 
     // TODO (set 6): do pooling in forward direction, store in out_batch
+
+    CUDNN_CALL(cudnnPoolingForward(cudnnHandle, pooling_desc,
+                                   &one,
+                                   in_shape, in_batch,
+                                   &zero,
+                                   out_shape, out_batch));
 }
 
 /**
@@ -649,6 +724,14 @@ void Pool2D::backward_pass(float learning_rate)
     float zero = 0, one = 1;
 
     // TODO (set 6): do pooling backwards, store gradient in grad_in_batch
+
+    CUDNN_CALL(cudnnPoolingBackward(cudnnHandle, pooling_desc,
+                                    &one,
+                                    out_shape, out_batch,
+                                    out_shape, grad_out_batch,
+                                    in_shape, in_batch,
+                                    &zero,
+                                    in_shape, grad_in_batch));
 }
 
 
@@ -675,8 +758,12 @@ SoftmaxCrossEntropy::SoftmaxCrossEntropy(Layer *prev,
     // TODO (set 5): get descriptor of input minibatch, in_shape, into variables
     //               declared above
 
+    CUDNN_CALL( cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride));
+
     // TODO (set 5): set descriptor of output minibatch, out_shape, to have the
     //               same parameters as in_shape and be ordered NCHW
+
+    CUDNN_CALL( cudnnSetTensor4dDescriptor(out_shape, CUDNN_TENSOR_NCHW, dtype, n, c, h, w));
 
     allocate_buffers();
 }
@@ -689,6 +776,13 @@ void SoftmaxCrossEntropy::forward_pass()
 
     // TODO (set 5): do softmax forward pass using accurate softmax and
     //               per instance mode. store result in out_batch.
+
+    CUDNN_CALL(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_INSTANCE,
+                                   &one,
+                                   in_shape, in_batch,
+                                   &zero,
+                                   out_shape, out_batch));
+
 }
 
 /**
@@ -711,8 +805,17 @@ void SoftmaxCrossEntropy::backward_pass(float lr)
 
     // TODO (set 5): first, copy grad_in_batch = out_batch
 
+    CUBLAS_CALL(cublasScopy(cublasHandle, size,
+                            out_batch, 1,
+                            grad_in_batch, 1));
+
     // TODO (set 5): set grad_in_batch = grad_in_batch - grad_out_batch using
     //               cublasSaxpy
+
+    CUBLAS_CALL(cublasSaxpy(cublasHandle, size,
+                            &minus_one,
+                            grad_out_batch, 1,
+                            grad_in_batch, 1));
 
     // normalize the gradient by the batch size (do it once in the beginning, so
     // we don't have to worry about it again later)
