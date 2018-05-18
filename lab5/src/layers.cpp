@@ -505,13 +505,13 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
 
     CUDNN_CALL(cudnnCreateConvolutionDescriptor(&conv_desc));
     int padding = 0;
+
     int dilation = 1;
     CUDNN_CALL(cudnnSetConvolution2dDescriptor(conv_desc, 
                                                padding, padding,
                                                stride, stride, 
                                                dilation, dilation, 
                                                CUDNN_CONVOLUTION, dtype));
-
 
     // Set output shape descriptor
     CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(conv_desc,
@@ -646,6 +646,7 @@ void Conv2D::backward_pass(float learning_rate)
     
     // TODO (set 6): weights = weights + eta * grad_weights
     CUBLAS_CALL(cublasSaxpy(cublasHandle, n_weights,
+<<<<<<< HEAD
                             &eta, 
                             grad_weights, 1,
                             weights, 1));
@@ -655,8 +656,6 @@ void Conv2D::backward_pass(float learning_rate)
                             &eta, 
                             grad_biases, 1,
                             biases, 1));
-}
-
 
 /******************************************************************************/
 /*                      POOLING LAYER IMPLEMENTATION                          */
