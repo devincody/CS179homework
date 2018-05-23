@@ -46,50 +46,44 @@ int main(int argc, char **argv)
 
     // Initialize a model to classify the MNIST dataset
     Model *model = new Model(1, c, h, w);
-#if CONV
+
     // Model is fully defined here:
     // https://gist.github.com/baraldilorenzo/07d7802847aaad0a35d3
-    model->add("conv", { 64, 3, 1 });       //(3x3xcx64)    block1_conv1
+    model->add("conv", { 64, 3, 1, 1});       //(3x3xcx64)    block1_conv1
     model->add(activation);
-    model->add("conv", { 64, 3, 1 });       //(3x3x64x64)   block1_conv2
+    model->add("conv", { 64, 3, 1, 1});       //(3x3x64x64)   block1_conv2
+    model->add(activation);
+    model->add("mean pool", { 2 });
+
+    model->add("conv", { 128, 3, 1, 1});       //(3x3x64x128)    block2_conv1
+    model->add(activation);
+    model->add("conv", { 128, 3, 1, 1});       //(3x3x128x128)   block2_conv2
     model->add(activation);
     model->add("max pool", { 2 });
 
-    // model->add("conv", { 128, 3, 1 });       //(3x3x64x128)    block2_conv1
-    // model->add(activation);
-    // model->add("conv", { 128, 3, 1 });       //(3x3x128x128)   block2_conv2
-    // model->add(activation);
-    // model->add("max pool", { 2 });
-
-    // model->add("conv", { 256, 3, 1 });       //(3x3x128x256)   block3_conv1
-    // model->add(activation);
-    // model->add("conv", { 256, 3, 1 });       //(3x3x256x256)   block3_conv2
-    // model->add(activation);
-    // model->add("conv", { 256, 3, 1 });       //(3x3x256x256)   block3_conv2
-    // model->add(activation);
-    // model->add("max pool", { 2 });
-
-    // model->add("conv", { 512, 3, 1 });       //(3x3x256x512)   block4_conv1
-    // model->add(activation);
-    // model->add("conv", { 512, 3, 1 });       //(3x3x512x512)   block4_conv2
-    // model->add(activation);
-    // model->add("conv", { 512, 3, 1 });       //(3x3x512x512)   block4_conv2
-    // model->add(activation);
-    // model->add("max pool", { 2 });
-
-    // model->add("conv", { 512, 3, 1 });       //(3x3x512x512)   block5_conv1
-    // model->add(activation);
-    // model->add("conv", { 512, 3, 1 });       //(3x3x512x512)   block5_conv2
-    // model->add(activation);
-    // model->add("conv", { 512, 3, 1 });       //(3x3x512x512)   block5_conv2
-    // model->add(activation);
-    // model->add("max pool", { 2 });
-
-
-#else
-    model->add("dense", { 200 });
+    model->add("conv", { 256, 3, 1, 1});       //(3x3x128x256)   block3_conv1
     model->add(activation);
-#endif
+    model->add("conv", { 256, 3, 1, 1});       //(3x3x256x256)   block3_conv2
+    model->add(activation);
+    model->add("conv", { 256, 3, 1, 1});       //(3x3x256x256)   block3_conv2
+    model->add(activation);
+    model->add("max pool", { 2 });
+
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x256x512)   block4_conv1
+    // model->add(activation);
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x512x512)   block4_conv2
+    // model->add(activation);
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x512x512)   block4_conv2
+    // model->add(activation);
+    // model->add("max pool", { 2 });
+
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x512x512)   block5_conv1
+    // model->add(activation);
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x512x512)   block5_conv2
+    // model->add(activation);
+    // model->add("conv", { 512, 3, 1, 1});       //(3x3x512x512)   block5_conv2
+    // model->add(activation);
+    // model->add("max pool", { 2 });
 
     model->add("dense", { n_classes });
     model->add("softmax crossentropy");

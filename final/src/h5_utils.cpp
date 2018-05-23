@@ -8,7 +8,7 @@
 #include "h5_utils.hpp"
 
 // little test script
-int main(){
+int test(){
 	std::cout << "***********************************" <<std::endl;
 	std::cout << "*         Reading Weights         *" <<std::endl;
 	std::cout << "***********************************" <<std::endl;

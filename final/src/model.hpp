@@ -41,6 +41,7 @@ private:
     void train_on_batch(const float *batch_X, float *batch_Y, float lr);
     float *predict_on_batch(const float *batch_X);
     result *evaluate_on_batch(const float *batch_X, float *batch_Y);
+    void update_metrics(const float *batch_X);
 
     void copy_input_batch(const float *batch_X);
     void copy_output_batch(const float *batch_Y);

@@ -121,6 +121,8 @@ void Model::add(std::string layer, std::vector<int> shape)
             "Must specify positive kernel dimension for conv layer.");
         assert(shape[2] > 0 &&
             "Must specify positive stride for conv layer.");
+        assert(shape[3] > 0 &&
+            "Must specify positive padding for conv layer.");
 
         /**********************************************************************/
         std::string layer_name = "block" + 
@@ -132,7 +134,7 @@ void Model::add(std::string layer, std::vector<int> shape)
         /**********************************************************************/
 
         layers->push_back(
-            new Conv2D(last, shape[0], shape[1], shape[2],
+            new Conv2D(last, shape[0], shape[1], shape[2], shape[3],
                 cublasHandle, cudnnHandle, layer_name));
         this->layer_number++;
     }
@@ -348,25 +350,24 @@ void Model::update_metrics(const float *batch_X)
     //TODO (final):
     assert(this->has_loss && "Cannot train without a loss function.");
 
-    std::vector<std::string> style_layers = {'block1_conv1', 'block2_conv1',
-                                               'block3_conv1', 'block4_conv1',
-                                               'block5_conv1'}
+    std::vector<std::string> style_layers = {"block1_conv1", "block2_conv1",
+                                               "block3_conv1", "block4_conv1",
+                                               "block5_conv1"};
 
     std::string content_layers = "block5_conv2";
     // Copy input and output minibatches into the model's buffers
     copy_input_batch(batch_X);
 
-    // Do a forward pass through every layer
-    std::vector<Layer *>::iterator it;
-    for (it = this->layers->begin(); it != this->layers->end(); ++it){
-        if ((i))
-        (*it)->forward_pass();
-    }
+    // // Do a forward pass through every layer
+    // std::vector<Layer *>::iterator it;
+    // for (it = this->layers->begin(); it != this->layers->end(); ++it){
+    //     (*it)->forward_pass();
+    // }
 
-    // Do a backward pass through every layer
-    std::vector<Layer *>::reverse_iterator rit;
-    for (rit = this->layers->rbegin(); rit != this->layers->rend(); ++rit)
-        (*rit)->backward_pass(lr);
+    // // Do a backward pass through every layer
+    // std::vector<Layer *>::reverse_iterator rit;
+    // for (rit = this->layers->rbegin(); rit != this->layers->rend(); ++rit)
+    //     (*rit)->backward_pass(lr);
 }
 
 

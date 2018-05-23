@@ -205,7 +205,7 @@ private:
 class Conv2D : public Layer
 {
 public:
-    Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
+    Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride, int padding,
         cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Conv2D();
     size_t get_workspace_size() const override;
@@ -231,10 +231,14 @@ private:
     /** Convolution algorithm to be used on backward pass wrt data */
     cudnnConvolutionBwdDataAlgo_t bwd_data_algo;
 
-    /**********************************************************************/
+    /**********************************************************************
     //TODO (final):
+    make pointer for loss metric
+    make tensor descriptor for loss metric
+
+    **********************************************************************/
+    
     float *loss_metric = nullptr;
-    /**********************************************************************/
 };
 
 
