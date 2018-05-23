@@ -70,4 +70,9 @@ private:
 
     /** Size of {\link Model::workspace} in bytes */
     size_t workspace_size = 0;
+
+    /**********************************************************************/
+    int block_number = 1;
+    int layer_number = 1;
+    /**********************************************************************/
 };

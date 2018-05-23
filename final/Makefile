@@ -3,6 +3,9 @@
 
 # Input Names
 CUDA_FILES = utils.cu
+######################################################
+HDF5_FILES = h5_utils.cpp
+######################################################
 CPP_FILES = model.cpp layers.cpp
 CPP_MAIN = main.cpp
 
@@ -53,10 +56,26 @@ FLAGS = -g -Wall -D_REENTRANT -std=c++11 -pthread
 INCLUDE = -I$(CUDA_INC_PATH)
 CUDA_LIBS = -L$(CUDA_LIB_PATH) -lcudart -lcufft -lcublas -lcudnn -lcurand
 
+# ------------------------------------------------------------------------------
+
+# H5c++ Compiler and Flags
+######################################################
+HDF5_PATH = /home/dcody/hdf5
+HDF5_INC_PATH = $(HDF5_PATH)/include
+HDF5_BIN_PATH = $(HDF5_PATH)/bin
+# HDF5_LIB_PATH = $(HDF5_PATH)/lib
+
+HDCPP = $(HDF5_BIN_PATH)/h5c++
+HDF5_FLAGS = -g -Wall -std=c++11
+HDF5_INCLUDE = -I$(CUDA_INC_PATH)
+######################################################
 
 # ------------------------------------------------------------------------------
 # Object files
 # ------------------------------------------------------------------------------
+# HDF5 Object Files
+HDF5_OBJ = $(OBJDIR)/hdf5.o
+HDF5_OBJ_FILES = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(HDF5_FILES)))
 
 # CUDA Object Files
 CUDA_OBJ = $(OBJDIR)/cuda.o
@@ -68,9 +87,13 @@ CONV_OBJ = $(addprefix $(OBJDIR)/conv-, $(addsuffix .o, $(CPP_MAIN)))
 DENSE_OBJ = $(addprefix $(OBJDIR)/dense-, $(addsuffix .o, $(CPP_MAIN)))
 
 # List of all common objects needed to be linked into the final executable
-COMMON_OBJ = $(CPP_OBJ) $(CUDA_OBJ) $(CUDA_OBJ_FILES)
+COMMON_OBJ = $(CPP_OBJ) $(CUDA_OBJ) $(CUDA_OBJ_FILES) 
 
 
+######################################################
+COMMON_OBJ += $(HDF5_OBJ) $(HDF5_OBJ_FILES) ## may not need to hdf5 obj files...
+											#Obj files for linking maybe...
+######################################################
 # ------------------------------------------------------------------------------
 # Make rules
 # ------------------------------------------------------------------------------
@@ -104,6 +127,11 @@ $(CUDA_OBJ_FILES): $(OBJDIR)/%.cu.o : $(SRCDIR)/%.cu
 $(CUDA_OBJ): $(CUDA_OBJ_FILES)
 	$(NVCC) $(CUDA_LINK_FLAGS) $(NVCC_GENCODES) -o $@ $(NVCC_INCLUDE) $<
 
+
+######################################################
+$(HDF5_OBJ): $(HDF5_OBJ_FILES)
+	$(HDF5) $(HDF5_FLAGS) $(HDF5_INCLUDE) $(HDF5_FILES)
+######################################################
 
 # Clean everything including temporary Emacs files
 clean:
