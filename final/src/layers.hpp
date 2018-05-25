@@ -231,10 +231,15 @@ private:
     /** Convolution algorithm to be used on backward pass wrt data */
     cudnnConvolutionBwdDataAlgo_t bwd_data_algo;
 
-    /**********************************************************************/
+    /**********************************************************************
     //TODO (final):
+    make pointer for loss metric
+    make tensor descriptor for loss metric
+
+    **********************************************************************/
+    
     float *loss_metric = nullptr;
-    /**********************************************************************/
+
 };
 
 

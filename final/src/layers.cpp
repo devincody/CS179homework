@@ -256,6 +256,13 @@ void Input::forward_pass() {}
 
 /** Nothing is behind the input layer. */
 void Input::backward_pass(float learning_rate) {}
+/*
+//TODO (final):
+Make flag to determine whether or not to do a gradient descent
+if (flag){
+    axpy() // out_batch -= lr*grad_out_batch;
+}
+*/
 
 
 /******************************************************************************/
@@ -477,6 +484,11 @@ void Activation::backward_pass(float learning_rate)
 /*                         CONV LAYER IMPLEMENTATION                          */
 /******************************************************************************/
 
+/*
+//TODO (final):
+Impliment a gram matrix method for conv method, to be called in "backward_pass"
+*/
+
 /**
  * Initialize filter descriptor, convolution descriptor, and output shape, as
  * well as algorithms to use for forwards and backwards convolutions. n_kernels
@@ -534,8 +546,7 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride, int padd
 
     // Set output shape descriptor
     CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(conv_desc,
-        in_shape, filter_desc, &n, &c, &h, &w) ); //<============================== error here....
-
+        in_shape, filter_desc, &n, &c, &h, &w) );
     CUDNN_CALL( cudnnSetTensor4dDescriptor(out_shape,
         CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w) );
 
@@ -571,6 +582,11 @@ Conv2D::~Conv2D()
  */
 size_t Conv2D::get_workspace_size() const
 {
+    /*
+    //TODO (final): update this so layer_metric size is accounted for...
+    looks like I need to pass a tensor descriptor for layer_metric
+
+    */
     size_t acc = 0, tmp = 0;
     CUDNN_CALL( cudnnGetConvolutionForwardWorkspaceSize(cudnnHandle,
         in_shape, filter_desc, conv_desc, out_shape, fwd_algo, &tmp) );
