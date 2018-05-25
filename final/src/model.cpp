@@ -32,7 +32,7 @@ Model::Model(int n, int c, int h, int w) {
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
     CUDNN_CALL( cudnnCreate(&cudnnHandle) );
     this->layers = new std::vector<Layer *>;
-    this->layers->push_back(new Input(n, c, h, w, cublasHandle, cudnnHandle));
+    this->layers->push_back(new Input(n, c, h, w, cublasHandle, cudnnHandle, "input"));
 }
 
 Model::~Model() {
@@ -66,23 +66,33 @@ void Model::add(std::string layer, std::vector<int> shape)
     /* ReLU activation */
     if (layer == "relu")
     {
+        /**********************************************************************/
+        std::string layer_name = "relu";
+        /**********************************************************************/
         layers->push_back(
             new Activation(last, CUDNN_ACTIVATION_RELU, 0.0,
-                cublasHandle, cudnnHandle));
+                cublasHandle, cudnnHandle, layer_name));
     }
 
     /* tanh activation */
     else if (layer == "tanh")
     {
+        /**********************************************************************/
+        std::string layer_name = "tanh";
+        /**********************************************************************/
         layers->push_back(
             new Activation(last, CUDNN_ACTIVATION_TANH, 0.0,
-                cublasHandle, cudnnHandle));
+                cublasHandle, cudnnHandle, layer_name));
     }
 
     /* Loss layers must also update that the model has a loss function */
     else if (layer == "softmax crossentropy" || layer == "softmax cross-entropy")
     {
-        layers->push_back(new SoftmaxCrossEntropy(last, cublasHandle, cudnnHandle));
+        /**********************************************************************/
+        std::string layer_name = "softmax";
+        /**********************************************************************/
+
+        layers->push_back(new SoftmaxCrossEntropy(last, cublasHandle, cudnnHandle, layer_name));
         this->has_loss = true;
     }
 
@@ -91,21 +101,42 @@ void Model::add(std::string layer, std::vector<int> shape)
     {
         assert(!shape.empty() && shape[0] > 0 &&
             "Must specify positive output shape for dense layer.");
-        layers->push_back(new Dense(last, shape[0], cublasHandle, cudnnHandle));
+
+        /**********************************************************************/
+        std::string layer_name = "block" + 
+                     std::to_string(block_number) + 
+                     "_dense" + 
+                     std::to_string(layer_number);
+        /**********************************************************************/
+
+        layers->push_back(new Dense(last, shape[0], cublasHandle, cudnnHandle, layer_name));
     }
 
     /* Convolutional layer */
     else if (layer == "conv")
     {
         assert(shape[0] > 0 &&
-            "Must specify positive number of knernels for conv layer.");
+            "Must specify positive number of kernels for conv layer.");
         assert(shape[1] > 0 &&
             "Must specify positive kernel dimension for conv layer.");
         assert(shape[2] > 0 &&
             "Must specify positive stride for conv layer.");
+        assert(shape[3] > 0 &&
+            "Must specify positive padding for conv layer.");
+
+        /**********************************************************************/
+        std::string layer_name = "block" + 
+                                 std::to_string(block_number) + 
+                                 "_conv" + 
+                                 std::to_string(layer_number);
+
+        std::cout << "adding: " + layer_name << std::endl;
+        /**********************************************************************/
+
         layers->push_back(
-            new Conv2D(last, shape[0], shape[1], shape[2],
-                cublasHandle, cudnnHandle));
+            new Conv2D(last, shape[0], shape[1], shape[2], shape[3],
+                cublasHandle, cudnnHandle, layer_name));
+        this->layer_number++;
     }
 
     /* Max pooling layer */
@@ -113,9 +144,18 @@ void Model::add(std::string layer, std::vector<int> shape)
     {
         assert(!shape.empty() && shape[0] > 0 &&
             "Must specify positive pooling dimension.");
+
+        /**********************************************************************/
+        std::string layer_name = "block" + 
+                                 std::to_string(block_number) + 
+                                 "_pool";
+        /**********************************************************************/
+                                 
         layers->push_back(
             new Pool2D(last, shape[0], CUDNN_POOLING_MAX,
-                cublasHandle, cudnnHandle) );
+                cublasHandle, cudnnHandle, layer_name) );
+        this->block_number++;
+        this->layer_number = 1;
     }
 
     else if (layer == "avg pool" || layer == "average pool" ||
@@ -123,10 +163,19 @@ void Model::add(std::string layer, std::vector<int> shape)
     {
         assert(!shape.empty() && shape[0] > 0 &&
             "Must specify positive pooling dimension.");
+
+        /**********************************************************************/
+        std::string layer_name = "block" + 
+                                 std::to_string(block_number) + 
+                                 "_pool";
+        /**********************************************************************/
+
         layers->push_back(
             new Pool2D(last, shape[0],
                 CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
-                cublasHandle, cudnnHandle) );
+                cublasHandle, cudnnHandle, layer_name) );
+        this->block_number++;
+        this->layer_number = 1;
     }
 
 
@@ -287,6 +336,40 @@ result *Model::evaluate(const float *eval_X, float *eval_Y, int n_examples)
     std::cout << ",\tAccuracy: " << ret->acc << std::endl << std::endl;
     return ret;
 }
+
+/**
+ * Updates the loss_metric variable in predetermined layers. Stores either the
+ * gram matrix of the layers or the output of the layers depending on input.
+ *
+ * @param batch_X The starting point of the minibatch of data we wish to use to
+ *                  perform the next stochastic gradient descent update
+ *
+ */
+void Model::update_metrics(const float *batch_X)
+{
+    //TODO (final):
+    assert(this->has_loss && "Cannot train without a loss function.");
+
+    std::vector<std::string> style_layers = {"block1_conv1", "block2_conv1",
+                                               "block3_conv1", "block4_conv1",
+                                               "block5_conv1"};
+
+    std::string content_layers = "block5_conv2";
+    // Copy input and output minibatches into the model's buffers
+    copy_input_batch(batch_X);
+
+    // // Do a forward pass through every layer
+    // std::vector<Layer *>::iterator it;
+    // for (it = this->layers->begin(); it != this->layers->end(); ++it){
+    //     (*it)->forward_pass();
+    // }
+
+    // // Do a backward pass through every layer
+    // std::vector<Layer *>::reverse_iterator rit;
+    // for (rit = this->layers->rbegin(); rit != this->layers->rend(); ++rit)
+    //     (*rit)->backward_pass(lr);
+}
+
 
 
 

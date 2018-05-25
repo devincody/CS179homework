@@ -17,7 +17,7 @@
 class Layer
 {
 public:
-    Layer(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+    Layer(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string name);
     virtual ~Layer();
     Layer *get_prev() const;
 
@@ -54,6 +54,8 @@ public:
     void set_workspace(float *workspace, size_t workspace_size);
 
 protected:
+    std::string layer_name;
+
     /** Previous layer. */
     Layer *prev;
 
@@ -145,7 +147,7 @@ class Input : public Layer
 {
 public:
     Input(int n, int c, int h, int w,
-        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Input();
     void forward_pass() override;
     void backward_pass(float learning_rate) override;
@@ -159,7 +161,7 @@ class Dense : public Layer
 {
 public:
     Dense(Layer *prev, int out_dim,
-        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Dense();
     void forward_pass() override;
     void backward_pass(float learning_rate) override;
@@ -186,7 +188,7 @@ class Activation : public Layer
 {
 public:
     Activation(Layer *prev, cudnnActivationMode_t activationMode, double coef,
-        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Activation();
     void forward_pass() override;
     void backward_pass(float learning_rate) override;
@@ -203,8 +205,8 @@ private:
 class Conv2D : public Layer
 {
 public:
-    Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
-        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+    Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride, int padding,
+        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Conv2D();
     size_t get_workspace_size() const override;
     void forward_pass() override;
@@ -228,6 +230,11 @@ private:
 
     /** Convolution algorithm to be used on backward pass wrt data */
     cudnnConvolutionBwdDataAlgo_t bwd_data_algo;
+
+    /**********************************************************************/
+    //TODO (final):
+    float *loss_metric = nullptr;
+    /**********************************************************************/
 };
 
 
@@ -238,7 +245,7 @@ class Pool2D : public Layer
 {
 public:
     Pool2D(Layer *prev, int stride, cudnnPoolingMode_t mode,
-        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+        cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Pool2D();
     void forward_pass() override;
     void backward_pass(float learning_rate) override;
@@ -260,7 +267,7 @@ private:
  */
 class Loss : public Layer {
 public:
-    Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+    Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~Loss();
 
 protected:
@@ -277,7 +284,7 @@ protected:
  */
 class SoftmaxCrossEntropy : public Loss {
 public:
-    SoftmaxCrossEntropy(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle);
+    SoftmaxCrossEntropy(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name);
     ~SoftmaxCrossEntropy();
     void forward_pass() override;
     void backward_pass(float lr) override;

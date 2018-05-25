@@ -31,8 +31,9 @@
  * layer's' output (as well as the tensor descriptor).
  */
 Layer::Layer(Layer *prev, cublasHandle_t cublasHandle,
-    cudnnHandle_t cudnnHandle)
+    cudnnHandle_t cudnnHandle, std::string name)
 {
+    this->layer_name = name;
     this->prev = prev;
     this->cublasHandle = cublasHandle;
     this->cudnnHandle = cudnnHandle;
@@ -189,10 +190,24 @@ void Layer::allocate_buffers()
  */
 void Layer::init_weights_biases()
 {
+    //std::cout << "Layer: " << this->layer_name << std::endl;
     cudnnDataType_t dtype;
     int n, c, h, w, n_stride, c_stride, h_stride, w_stride;
     CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w,
         &n_stride, &c_stride, &h_stride, &w_stride));
+
+    //TODO (final):
+    /********************************************************************
+    // initialize host_weights array
+    float* h_weights;
+    float* h_biases;
+    // Obtain correctly ordered dataset from hdf5 file
+    h_weights = get_weights(layer_name, n,c, h, w);
+    h_biases = get_bias(layer_name, n);
+    // cudaMalloc to weights
+    cudaMemcpy(weights, h_weights, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(biases, h_biases, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
+    *******************************************************************/
 
     curandGenerator_t gen;
     float minus_half = -0.5;
@@ -224,8 +239,8 @@ void Layer::init_weights_biases()
  * The output of an input layer is just 
  */
 Input::Input(int n, int c, int h, int w,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(nullptr, cublasHandle, cudnnHandle)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(nullptr, cublasHandle, cudnnHandle, layer_name)
 {
     //https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSetTensor4dDescriptor
     // TODO (set 5): set output tensor descriptor out_shape to have format
@@ -252,8 +267,8 @@ void Input::backward_pass(float learning_rate) {}
  * output dimension, and allocates and initializes buffers appropriately.
  */
 Dense::Dense(Layer *prev, int out_dim,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(prev, cublasHandle, cudnnHandle)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name)
 {
     // Get the input shape for the layer and flatten it if needed
     cudnnDataType_t dtype;
@@ -387,8 +402,8 @@ void Dense::backward_pass(float learning_rate)
  * activation descriptor as appropriate.
  */
 Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
-    double coef, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(prev, cublasHandle, cudnnHandle)
+    double coef, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name)
 {
     cudnnDataType_t dtype;
     int n, c, h, w, nStride, cStride, hStride, wStride;
@@ -469,16 +484,19 @@ void Activation::backward_pass(float learning_rate)
  * kernel is (kernel_size x kernel_size), the stride of the convolution is
  * (stride x stride).
  */
-Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(prev, cublasHandle, cudnnHandle)
+Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride, int padding,
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name)
 {
+    //TODO (final): ADD PADDING = 1
     cudnnDataType_t dtype;
     int n, c, h, w, n_stride, c_stride, h_stride, w_stride;
     // TODO (set 6): Get the input tensor descriptor in_shape into the variables
     //               declared above
 
     CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w, &n_stride, &c_stride, &h_stride, &w_stride));
+
+    std::cout << "NCHW: " << n_kernels << " " << c << " " << kernel_size << " " << kernel_size << " " << std::endl;
 
     // Compute nubmer of weights and biases
     this->n_weights = n_kernels * c * kernel_size * kernel_size;
@@ -504,7 +522,7 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
     //               factors of 1. This is class field conv_desc.
 
     CUDNN_CALL(cudnnCreateConvolutionDescriptor(&conv_desc));
-    int padding = 0;
+
     int dilation = 1;
     CUDNN_CALL(cudnnSetConvolution2dDescriptor(conv_desc, 
                                                padding, padding,
@@ -513,9 +531,11 @@ Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride,
                                                CUDNN_CONVOLUTION, dtype));
 
 
+
     // Set output shape descriptor
     CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(conv_desc,
-        in_shape, filter_desc, &n, &c, &h, &w) );
+        in_shape, filter_desc, &n, &c, &h, &w) ); //<============================== error here....
+
     CUDNN_CALL( cudnnSetTensor4dDescriptor(out_shape,
         CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w) );
 
@@ -580,7 +600,7 @@ void Conv2D::forward_pass()
     CUDNN_CALL(cudnnConvolutionForward(cudnnHandle,
                                        &one,
                                        in_shape, in_batch,
-                                       filter_desc, weights, // WEIGHTS??????
+                                       filter_desc, weights,
                                        conv_desc, 
                                        fwd_algo,
                                        workspace, workspace_size,
@@ -641,6 +661,34 @@ void Conv2D::backward_pass(float learning_rate)
                                              in_shape, grad_in_batch));
 
 
+    /***********************************************************
+    TODO (final):
+    Get rid of this lower part
+    add in code along the lines of:
+    
+    if (layer_name == "block5_conv2"){
+        grad_in_batch = content_loss()    //<<note the equality here
+    } else if (layer_name in style_layers){
+        grad_in_batch += style_loss()
+    }
+
+    // New functions??? 
+    conv::content_loss():
+        return out_batch - loss_metric //use axpy???
+
+    conv::style_loss():
+        return out_batch \cdot [gram(out_batch) - gram(loss_metric)]
+        // use a cublasSgemv
+
+    conv::gram():
+        // e.g. block5_conv1:
+        // 512 feature maps, each of which has n^2 elements where n is the 
+        // 
+        cublasSgemm
+
+
+    ***********************************************************/
+
     // Descend along the gradients of the weights and biases using cublasSaxpy
     float eta = -learning_rate;
     
@@ -668,8 +716,8 @@ void Conv2D::backward_pass(float learning_rate)
  * of this operation.
  */
 Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(prev, cublasHandle, cudnnHandle)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name)
 {
     // TODO (set 6): Create and set pooling descriptor to have the given mode,
     //               propagate NaN's, have window size (stride x stride), have
@@ -740,8 +788,8 @@ void Pool2D::backward_pass(float learning_rate)
 /******************************************************************************/
 
 /** Inherits from a {\link Layer}. */
-Loss::Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Layer(prev, cublasHandle, cudnnHandle) {}
+Loss::Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name) {}
 
 Loss::~Loss() = default;
 
@@ -749,8 +797,8 @@ Loss::~Loss() = default;
 /*                SOFTMAX + CROSS-ENTROPY LOSS IMPLEMENTATION                 */
 /******************************************************************************/
 SoftmaxCrossEntropy::SoftmaxCrossEntropy(Layer *prev,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle)
-: Loss(prev, cublasHandle, cudnnHandle)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
+: Loss(prev, cublasHandle, cudnnHandle, layer_name)
 {
     cudnnDataType_t dtype;
     int n, c, h, w, nStride, cStride, hStride, wStride;

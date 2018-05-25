@@ -41,6 +41,7 @@ private:
     void train_on_batch(const float *batch_X, float *batch_Y, float lr);
     float *predict_on_batch(const float *batch_X);
     result *evaluate_on_batch(const float *batch_X, float *batch_Y);
+    void update_metrics(const float *batch_X);
 
     void copy_input_batch(const float *batch_X);
     void copy_output_batch(const float *batch_Y);
@@ -70,4 +71,9 @@ private:
 
     /** Size of {\link Model::workspace} in bytes */
     size_t workspace_size = 0;
+
+    /**********************************************************************/
+    int block_number = 1;
+    int layer_number = 1;
+    /**********************************************************************/
 };

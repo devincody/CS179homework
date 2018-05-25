@@ -3,8 +3,10 @@
 
 # Input Names
 CUDA_FILES = utils.cu
-CPP_FILES = model.cpp layers.cpp
-CPP_MAIN = main.cpp
+######################################################
+HDF5_FILES = h5_utils.cpp
+######################################################
+CPP_FILES = main.cpp model.cpp layers.cpp
 
 # Directory names
 SRCDIR = src
@@ -53,10 +55,28 @@ FLAGS = -g -Wall -D_REENTRANT -std=c++11 -pthread
 INCLUDE = -I$(CUDA_INC_PATH)
 CUDA_LIBS = -L$(CUDA_LIB_PATH) -lcudart -lcufft -lcublas -lcudnn -lcurand
 
+# ------------------------------------------------------------------------------
+
+# H5c++ Compiler and Flags
+######################################################
+HDF5_PATH = /home/dcody/hdf5
+HDF5_INC_PATH = $(HDF5_PATH)/include
+HDF5_BIN_PATH = $(HDF5_PATH)/bin
+HDF5_LIB_PATH = $(HDF5_PATH)/lib
+
+HDCPP = $(HDF5_BIN_PATH)/h5c++
+HDF5_FLAGS = -g -Wall -std=c++11
+HDF5_INCLUDE = -I$(HDF5_INC_PATH)
+HDF5_LDFLAGS = -L$(HDF5_LIB_PATH) /home/dcody/hdf5/lib/libhdf5_hl_cpp.a /home/dcody/hdf5/lib/libhdf5_cpp.a /home/dcody/hdf5/lib/libhdf5_hl.a /home/dcody/hdf5/lib/libhdf5.a -lz -ldl -lm -Wl,-rpath -Wl,/home/dcody/hdf5/lib
+
+# /home/dcody/hdf5/bin/h5c++ -o h5 h5_utils.cpp -I/home/dcody/hdf5/include
+######################################################
 
 # ------------------------------------------------------------------------------
 # Object files
 # ------------------------------------------------------------------------------
+# HDF5 Object Files
+HDF5_OBJ = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(HDF5_FILES)))
 
 # CUDA Object Files
 CUDA_OBJ = $(OBJDIR)/cuda.o
@@ -64,11 +84,9 @@ CUDA_OBJ_FILES = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(CUDA_FILES)))
 
 # C++ Object Files
 CPP_OBJ = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(CPP_FILES)))
-CONV_OBJ = $(addprefix $(OBJDIR)/conv-, $(addsuffix .o, $(CPP_MAIN)))
-DENSE_OBJ = $(addprefix $(OBJDIR)/dense-, $(addsuffix .o, $(CPP_MAIN)))
 
 # List of all common objects needed to be linked into the final executable
-COMMON_OBJ = $(CPP_OBJ) $(CUDA_OBJ) $(CUDA_OBJ_FILES)
+COMMON_OBJ = $(CPP_OBJ) $(CUDA_OBJ) $(CUDA_OBJ_FILES) $(HDF5_OBJ)
 
 
 # ------------------------------------------------------------------------------
@@ -76,22 +94,16 @@ COMMON_OBJ = $(CPP_OBJ) $(CUDA_OBJ) $(CUDA_OBJ_FILES)
 # ------------------------------------------------------------------------------
 
 # Top level rules
-all: dense-neuralnet conv-neuralnet
+all: main #dense-neuralnet conv-neuralnet
 
-dense-neuralnet: $(DENSE_OBJ) $(COMMON_OBJ)
-	$(GPP) $(FLAGS) -o $(BINDIR)/$@ $(INCLUDE) $^ $(CUDA_LIBS) 
+main: $(CPP_OBJ) $(COMMON_OBJ)
+	$(GPP) $(FLAGS) -o $(BINDIR)/$@ $(INCLUDE) $^ $(CUDA_LIBS) $(HDF5_LDFLAGS)
 
 conv-neuralnet: $(CONV_OBJ) $(COMMON_OBJ)
-	$(GPP) $(FLAGS) -o $(BINDIR)/$@ $(INCLUDE) $^ $(CUDA_LIBS)
+	$(GPP) $(FLAGS) -o $(BINDIR)/$@ $(INCLUDE) $^ $(CUDA_LIBS) $(HDF5_LDFLAGS)
 
 
 # Compile C++ Source Files
-$(DENSE_OBJ): $(addprefix $(SRCDIR)/, $(CPP_MAIN))
-	$(GPP) $(FLAGS) -D CONV=0 -c -o $@ $(INCLUDE) $< 
-
-$(CONV_OBJ): $(addprefix $(SRCDIR)/, $(CPP_MAIN))
-	$(GPP) $(FLAGS) -D CONV=1 -c -o $@ $(INCLUDE) $< 
-
 $(CPP_OBJ): $(OBJDIR)/%.o : $(SRCDIR)/%
 	$(GPP) $(FLAGS) -c -o $@ $(INCLUDE) $<
 
@@ -102,8 +114,13 @@ $(CUDA_OBJ_FILES): $(OBJDIR)/%.cu.o : $(SRCDIR)/%.cu
 
 # Make linked device code
 $(CUDA_OBJ): $(CUDA_OBJ_FILES)
-	$(NVCC) $(CUDA_LINK_FLAGS) $(NVCC_GENCODES) -o $@ $(NVCC_INCLUDE) $<
+	$(NVCC) $(CUDA_LINK_FLAGS) $(NVCC_GENCODES) -o $@ $(NVCC_INCLUDE) $^
 
+
+######################################################
+$(HDF5_OBJ): $(addprefix $(SRCDIR)/, $(HDF5_FILES))
+	$(HDCPP) $(HDF5_FLAGS) -c -o $@ $(HDF5_INCLUDE) $^
+######################################################
 
 # Clean everything including temporary Emacs files
 clean:
