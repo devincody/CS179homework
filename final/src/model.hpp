@@ -26,7 +26,7 @@ typedef struct _result {
  */
 class Model {
 public:
-    Model(int n, int c, int h = 1, int w = 1);
+    Model(int n, int c, int h = 1, int w = 1, bool random_weights = true);
     ~Model();
 
     void add(std::string layer_type, std::vector<int> shape = {});
@@ -75,5 +75,6 @@ private:
     /**********************************************************************/
     int block_number = 1;
     int layer_number = 1;
+    bool random_weights = true;
     /**********************************************************************/
 };

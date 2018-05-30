@@ -4,9 +4,9 @@
 # Input Names
 CUDA_FILES = utils.cu
 ######################################################
-HDF5_FILES = h5_utils.cpp
+HDF5_FILES = h5_utils.cpp layers.cpp
 ######################################################
-CPP_FILES = main.cpp model.cpp layers.cpp
+CPP_FILES = main.cpp model.cpp 
 
 # Directory names
 SRCDIR = src
@@ -118,8 +118,9 @@ $(CUDA_OBJ): $(CUDA_OBJ_FILES)
 
 
 ######################################################
-$(HDF5_OBJ): $(addprefix $(SRCDIR)/, $(HDF5_FILES))
-	$(HDCPP) $(HDF5_FLAGS) -c -o $@ $(HDF5_INCLUDE) $^
+#$(addprefix $(SRCDIR)/, $(HDF5_FILES))
+$(HDF5_OBJ): $(OBJDIR)/%.o : $(SRCDIR)/%
+	$(HDCPP) $(HDF5_FLAGS) -c -o $@ $(HDF5_INCLUDE) $(INCLUDE) $<
 ######################################################
 
 # Clean everything including temporary Emacs files

@@ -25,14 +25,15 @@
  * and width to 1, and let the number of channels c represent the dimensionality
  * of the input vectors.
  */
-Model::Model(int n, int c, int h, int w) {
+Model::Model(int n, int c, int h, int w, bool random_weights) {
     this->has_loss = false;
     this->batch_size = n;
     this->input_size = c * h * w;
+    this->random_weights = random_weights;
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
     CUDNN_CALL( cudnnCreate(&cudnnHandle) );
     this->layers = new std::vector<Layer *>;
-    this->layers->push_back(new Input(n, c, h, w, cublasHandle, cudnnHandle, "input"));
+    this->layers->push_back(new Input(n, c, h, w, cublasHandle, cudnnHandle, "input", random_weights));
 }
 
 Model::~Model() {
@@ -71,7 +72,7 @@ void Model::add(std::string layer, std::vector<int> shape)
         /**********************************************************************/
         layers->push_back(
             new Activation(last, CUDNN_ACTIVATION_RELU, 0.0,
-                cublasHandle, cudnnHandle, layer_name));
+                cublasHandle, cudnnHandle, layer_name, this->random_weights));
     }
 
     /* tanh activation */
@@ -82,7 +83,7 @@ void Model::add(std::string layer, std::vector<int> shape)
         /**********************************************************************/
         layers->push_back(
             new Activation(last, CUDNN_ACTIVATION_TANH, 0.0,
-                cublasHandle, cudnnHandle, layer_name));
+                cublasHandle, cudnnHandle, layer_name, this->random_weights));
     }
 
     /* Loss layers must also update that the model has a loss function */
@@ -92,7 +93,7 @@ void Model::add(std::string layer, std::vector<int> shape)
         std::string layer_name = "softmax";
         /**********************************************************************/
 
-        layers->push_back(new SoftmaxCrossEntropy(last, cublasHandle, cudnnHandle, layer_name));
+        layers->push_back(new SoftmaxCrossEntropy(last, cublasHandle, cudnnHandle, layer_name, this->random_weights));
         this->has_loss = true;
     }
 
@@ -109,7 +110,7 @@ void Model::add(std::string layer, std::vector<int> shape)
                      std::to_string(layer_number);
         /**********************************************************************/
 
-        layers->push_back(new Dense(last, shape[0], cublasHandle, cudnnHandle, layer_name));
+        layers->push_back(new Dense(last, shape[0], cublasHandle, cudnnHandle, layer_name, this->random_weights));
     }
 
     /* Convolutional layer */
@@ -135,7 +136,7 @@ void Model::add(std::string layer, std::vector<int> shape)
 
         layers->push_back(
             new Conv2D(last, shape[0], shape[1], shape[2], shape[3],
-                cublasHandle, cudnnHandle, layer_name));
+                cublasHandle, cudnnHandle, layer_name, this->random_weights));
         this->layer_number++;
     }
 
@@ -153,7 +154,7 @@ void Model::add(std::string layer, std::vector<int> shape)
                                  
         layers->push_back(
             new Pool2D(last, shape[0], CUDNN_POOLING_MAX,
-                cublasHandle, cudnnHandle, layer_name) );
+                cublasHandle, cudnnHandle, layer_name, this->random_weights) );
         this->block_number++;
         this->layer_number = 1;
     }
@@ -173,7 +174,7 @@ void Model::add(std::string layer, std::vector<int> shape)
         layers->push_back(
             new Pool2D(last, shape[0],
                 CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
-                cublasHandle, cudnnHandle, layer_name) );
+                cublasHandle, cudnnHandle, layer_name, this->random_weights) );
         this->block_number++;
         this->layer_number = 1;
     }
@@ -348,7 +349,6 @@ result *Model::evaluate(const float *eval_X, float *eval_Y, int n_examples)
 void Model::update_metrics(const float *batch_X)
 {
     //TODO (final):
-    assert(this->has_loss && "Cannot train without a loss function.");
 
     std::vector<std::string> style_layers = {"block1_conv1", "block2_conv1",
                                                "block3_conv1", "block4_conv1",

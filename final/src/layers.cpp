@@ -20,6 +20,7 @@
 #include "layers.hpp"
 #include "utils.cuh"
 #include "helper_cuda.h"
+#include "h5_utils.hpp"
 
 
 /******************************************************************************/
@@ -31,12 +32,13 @@
  * layer's' output (as well as the tensor descriptor).
  */
 Layer::Layer(Layer *prev, cublasHandle_t cublasHandle,
-    cudnnHandle_t cudnnHandle, std::string name)
+    cudnnHandle_t cudnnHandle, std::string name, bool init_rand)
 {
     this->layer_name = name;
     this->prev = prev;
     this->cublasHandle = cublasHandle;
     this->cudnnHandle = cudnnHandle;
+    this->init_randomly = init_rand;
 
     CUDNN_CALL( cudnnCreateTensorDescriptor(&in_shape) );
     if (prev)
@@ -196,38 +198,40 @@ void Layer::init_weights_biases()
     CUDNN_CALL(cudnnGetTensor4dDescriptor(in_shape, &dtype, &n, &c, &h, &w,
         &n_stride, &c_stride, &h_stride, &w_stride));
 
+    if(this->init_randomly){
+        curandGenerator_t gen;
+        float minus_half = -0.5;
+        float range = 2 / sqrt(static_cast<float>(c * h * w));
+        std::random_device rd;
+        CURAND_CALL( curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT) );
+        CURAND_CALL( curandSetPseudoRandomGeneratorSeed(gen, rd()) );
+
+        if (weights)
+        {
+            CURAND_CALL( curandGenerateUniform(gen, weights, n_weights) );
+            CUBLAS_CALL( cublasSaxpy(cublasHandle, n_weights,
+                &minus_half, weights, 1, weights, 1) );
+            CUBLAS_CALL( cublasSscal(cublasHandle, n_weights, &range, weights, 1) );
+        }
+
+        if (biases)
+            cudaMemsetType<float>(biases, 0.0f, n_biases);
+
+        CURAND_CALL( curandDestroyGenerator(gen) );
+    } else {
     //TODO (final):
-    /********************************************************************
+    /********************************************************************/
     // initialize host_weights array
     float* h_weights;
     float* h_biases;
     // Obtain correctly ordered dataset from hdf5 file
     h_weights = get_weights(layer_name, n,c, h, w);
     h_biases = get_bias(layer_name, n);
-    // cudaMalloc to weights
+    // cudaMemcpy to weights
     cudaMemcpy(weights, h_weights, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(biases, h_biases, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
-    *******************************************************************/
-
-    curandGenerator_t gen;
-    float minus_half = -0.5;
-    float range = 2 / sqrt(static_cast<float>(c * h * w));
-    std::random_device rd;
-    CURAND_CALL( curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT) );
-    CURAND_CALL( curandSetPseudoRandomGeneratorSeed(gen, rd()) );
-
-    if (weights)
-    {
-        CURAND_CALL( curandGenerateUniform(gen, weights, n_weights) );
-        CUBLAS_CALL( cublasSaxpy(cublasHandle, n_weights,
-            &minus_half, weights, 1, weights, 1) );
-        CUBLAS_CALL( cublasSscal(cublasHandle, n_weights, &range, weights, 1) );
+    /*******************************************************************/
     }
-
-    if (biases)
-        cudaMemsetType<float>(biases, 0.0f, n_biases);
-
-    CURAND_CALL( curandDestroyGenerator(gen) );
 }
 
 
@@ -239,8 +243,8 @@ void Layer::init_weights_biases()
  * The output of an input layer is just 
  */
 Input::Input(int n, int c, int h, int w,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(nullptr, cublasHandle, cudnnHandle, layer_name)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(nullptr, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     //https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSetTensor4dDescriptor
     // TODO (set 5): set output tensor descriptor out_shape to have format
@@ -274,8 +278,8 @@ if (flag){
  * output dimension, and allocates and initializes buffers appropriately.
  */
 Dense::Dense(Layer *prev, int out_dim,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(prev, cublasHandle, cudnnHandle, layer_name)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     // Get the input shape for the layer and flatten it if needed
     cudnnDataType_t dtype;
@@ -409,8 +413,8 @@ void Dense::backward_pass(float learning_rate)
  * activation descriptor as appropriate.
  */
 Activation::Activation(Layer *prev, cudnnActivationMode_t activationMode,
-    double coef, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(prev, cublasHandle, cudnnHandle, layer_name)
+    double coef, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     cudnnDataType_t dtype;
     int n, c, h, w, nStride, cStride, hStride, wStride;
@@ -497,8 +501,8 @@ Impliment a gram matrix method for conv method, to be called in "backward_pass"
  * (stride x stride).
  */
 Conv2D::Conv2D(Layer *prev, int n_kernels, int kernel_size, int stride, int padding,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(prev, cublasHandle, cudnnHandle, layer_name)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     //TODO (final): ADD PADDING = 1
     cudnnDataType_t dtype;
@@ -732,8 +736,8 @@ void Conv2D::backward_pass(float learning_rate)
  * of this operation.
  */
 Pool2D::Pool2D(Layer* prev, int stride, cudnnPoolingMode_t mode,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(prev, cublasHandle, cudnnHandle, layer_name)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     // TODO (set 6): Create and set pooling descriptor to have the given mode,
     //               propagate NaN's, have window size (stride x stride), have
@@ -804,8 +808,8 @@ void Pool2D::backward_pass(float learning_rate)
 /******************************************************************************/
 
 /** Inherits from a {\link Layer}. */
-Loss::Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Layer(prev, cublasHandle, cudnnHandle, layer_name) {}
+Loss::Loss(Layer *prev, cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Layer(prev, cublasHandle, cudnnHandle, layer_name, init_rand) {}
 
 Loss::~Loss() = default;
 
@@ -813,8 +817,8 @@ Loss::~Loss() = default;
 /*                SOFTMAX + CROSS-ENTROPY LOSS IMPLEMENTATION                 */
 /******************************************************************************/
 SoftmaxCrossEntropy::SoftmaxCrossEntropy(Layer *prev,
-    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name)
-: Loss(prev, cublasHandle, cudnnHandle, layer_name)
+    cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, std::string layer_name, bool init_rand)
+: Loss(prev, cublasHandle, cudnnHandle, layer_name, init_rand)
 {
     cudnnDataType_t dtype;
     int n, c, h, w, nStride, cStride, hStride, wStride;
