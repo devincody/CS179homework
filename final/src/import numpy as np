@@ -1,0 +1,26 @@
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+n = 2048
+df = 20.0/n
+
+x = np.linspace(0,20,n)
+y = (x + np.random.uniform(-.5, .5, n)) % (2*np.pi)
+
+plt.plot(x,y)
+plt.show()
+
+
+
+pad = 6
+
+y = np.concatenate((y, np.zeros((pad-1)*n)))
+y = y * np.hamming(pad*n)
+fft = np.abs(np.fft.fft(y))
+freq = np.fft.fftfreq(pad*n, df)
+
+plt.plot(freq*2*np.pi, fft)
+plt.show()
+
+

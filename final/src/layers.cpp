@@ -199,6 +199,7 @@ void Layer::init_weights_biases()
         &n_stride, &c_stride, &h_stride, &w_stride));
 
     if(this->init_randomly){
+        std::cout <<  "Initializing Randomly" << std::endl;
         curandGenerator_t gen;
         float minus_half = -0.5;
         float range = 2 / sqrt(static_cast<float>(c * h * w));
@@ -219,18 +220,22 @@ void Layer::init_weights_biases()
 
         CURAND_CALL( curandDestroyGenerator(gen) );
     } else {
-    //TODO (final):
-    /********************************************************************/
-    // initialize host_weights array
-    float* h_weights;
-    float* h_biases;
-    // Obtain correctly ordered dataset from hdf5 file
-    h_weights = get_weights(layer_name, n,c, h, w);
-    h_biases = get_bias(layer_name, n);
-    // cudaMemcpy to weights
-    cudaMemcpy(weights, h_weights, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(biases, h_biases, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
-    /*******************************************************************/
+        std::cout <<  "Initializing from .h5" << std::endl;
+        //TODO (final):
+        /********************************************************************/
+        // initialize host_weights array
+        float* h_weights;
+        float* h_biases;
+        // Obtain correctly ordered dataset from hdf5 file
+
+        h_weights = get_weights(layer_name, n_biases, c, 3, 3);
+        std::cout <<  "done getting weights" << std::endl;
+        h_biases = get_bias(layer_name, n_biases);
+        std::cout <<  "done getting biases" << std::endl;
+        // cudaMemcpy to weights
+        cudaMemcpy(weights, h_weights, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(biases, h_biases, n*c*h*w*sizeof(float), cudaMemcpyHostToDevice);
+        /*******************************************************************/
     }
 }
 

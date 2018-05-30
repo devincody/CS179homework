@@ -4,9 +4,9 @@
 # Input Names
 CUDA_FILES = utils.cu
 ######################################################
-HDF5_FILES = h5_utils.cpp layers.cpp
+HDF5_FILES = h5_utils.cpp
 ######################################################
-CPP_FILES = main.cpp model.cpp 
+CPP_FILES = main.cpp model.cpp layers.cpp
 
 # Directory names
 SRCDIR = src

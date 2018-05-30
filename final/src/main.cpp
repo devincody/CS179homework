@@ -44,6 +44,8 @@ int main(int argc, char **argv)
         n_train, c, h, w, n_classes, &train_X, &train_Y);
     std::cout << "Loaded training set." << std::endl;
 
+    c = 3;
+
     // Initialize a model to classify the MNIST dataset
     bool random_weights = false;
     Model *model = new Model(1, c, h, w, random_weights);

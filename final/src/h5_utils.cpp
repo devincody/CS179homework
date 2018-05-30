@@ -66,6 +66,9 @@ float* get_weights(std::string name, int n, int c, int h, int w){
 	memset(data, 0, len*sizeof(float));
 	memset(odata, 0, len*sizeof(float));
 
+	std::cout << "done weights memsetting for : "<< name << std::endl;
+	std::cout <<  "n: " << n << "c: " << c << "h: "<< h << "w:" << w << std::endl;
+
 	try{
 		H5::Exception::dontPrint();
 		H5::H5File file(FILE_NAME, H5F_ACC_RDONLY); // open read only file
@@ -80,6 +83,7 @@ float* get_weights(std::string name, int n, int c, int h, int w){
 	    }		
 
 	    dataset.read(data, H5::PredType::NATIVE_FLOAT);
+	    std::cout << "done weights Reading " << std::endl;
 
 	    // Format data into NCHW from HWCN 
 	    if (data){
@@ -100,6 +104,9 @@ float* get_weights(std::string name, int n, int c, int h, int w){
 			std::cout << "ERROR: Failed to read weight data" << std::endl;
 		}
 
+		std::cout << "done weights reordering " << std::endl;
+
+		file.close();
 
 
 	}
@@ -141,9 +148,11 @@ float* get_weights(std::string name, int n, int c, int h, int w){
 float* get_bias(std::string name, int n){
 	float* odata = new float[n]();
 
+	std::cout << "done bias memsetting for : " << name << std::endl;
+	std::cout <<  "n: " << n << std::endl;
 	memset(odata, 0, n*sizeof(float));
 
-	try{
+	// try{
 		H5::Exception::dontPrint();
 		H5::H5File file(FILE_NAME, H5F_ACC_RDONLY); // open read only file
 		H5::Group group = file.openGroup(name);		// open file group
@@ -157,39 +166,49 @@ float* get_bias(std::string name, int n){
 	    }		
 
 	    dataset.read(odata, H5::PredType::NATIVE_FLOAT);
-	    if (!odata){
-			std::cout << "ERROR: Failed to read bias data" << std::endl;
-		}
+	    std::cout << "done bias reading" << std::endl;
 
-	}
+	 	//if (!odata){
+		// 	std::cout << "ERROR: Failed to read bias data" << std::endl;
+		// }
+		std::cout << "done bias reading" << std::endl;
+		file.close();
+
+
+	// }
 	// catch failure caused by the H5File operations
-	catch( H5::FileIException error )
-	{
-		error.printError();
-		return nullptr;
-	}
+	// catch( H5::FileIException error )
+	// {
+	// 	std::cout << "in bias error" << std::endl;
+	// 	error.printError();
+	// 	return nullptr;
+	// }
 
-	// catch failure caused by the DataSet operations
-	catch( H5::DataSetIException error )
-	{
-		error.printError();
-		return nullptr;
-	}
+	// // catch failure caused by the DataSet operations
+	// catch( H5::DataSetIException error )
+	// {
+	// 	std::cout << "in bias error" << std::endl;
+	// 	error.printError();
+	// 	return nullptr;
+	// }
 
-	// catch failure caused by the DataSpace operations
-	catch( H5::DataSpaceIException error )
-	{
-		error.printError();
-		return nullptr;
-	}
+	// // catch failure caused by the DataSpace operations
+	// catch( H5::DataSpaceIException error )
+	// {
+	// 	std::cout << "in bias error" << std::endl;
+	// 	error.printError();
+	// 	return nullptr;
+	// }
 
-	// catch failure caused by the DataSpace operations
-	catch( H5::DataTypeIException error )
-	{
-		error.printError();
-		return nullptr;
-	}
+	// // catch failure caused by the DataSpace operations
+	// catch( H5::DataTypeIException error )
+	// {
+	// 	std::cout << "in bias error" << std::endl;
+	// 	error.printError();
+	// 	return nullptr;
+	// }
 
+	std::cout << "returning" << std::endl;
 	return odata;
 }
 
